@@ -50,6 +50,15 @@ Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en 
   Un segundo registro con la misma CUIT solo se admite con motivo, con el parámetro
   `allow_duplicate_tax_id` habilitado y con el permiso `*.duplicate_tax_id` (por defecto, solo Administrador).
   La baja exige saldo cero y ningún cheque en circulación.
+- **Comprobantes emitidos y comprobantes recibidos** (Hito 3): registro de facturas, notas de débito y
+  notas de crédito **ya emitidas** por el sistema de facturación o recibidas de proveedores. El ERP no
+  emite, no numera, no solicita CAE ni se conecta con ARCA. Al registrar se valida: duplicado
+  (tipo + punto de venta + número + tercero), alícuotas vigentes a la fecha, IVA calculado ± tolerancia
+  (`vat_tolerance`), total de control, período IVA, período cerrado, vinculación de NC/ND y límite de
+  crédito (advertencia con confirmación). Cada registro genera su movimiento en la cuenta corriente.
+  Los importes no se editan: se anula el registro (queda en el historial, con reversión del movimiento)
+  y se usa "Registrar corregido", que libera el número y precarga los datos. Solo vencimiento, concepto,
+  descripción y referencia externa se corrigen en el lugar, con auditoría.
 
 ## Pruebas
 

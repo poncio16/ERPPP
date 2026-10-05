@@ -14,6 +14,11 @@ const DEFAULTS = {
   login_max_attempts: 5,
   login_lock_minutes: 15,
   password_min_length: 12,
+  letter_vat_matrix: { mode: "WARN", issued: {} } as {
+    mode?: "WARN" | "BLOCK";
+    issued?: Record<string, string[]>;
+    received?: Record<string, string[]>;
+  } | null,
 };
 export type ConfigKey = keyof typeof DEFAULTS;
 export type ConfigValue<K extends ConfigKey> = (typeof DEFAULTS)[K];
