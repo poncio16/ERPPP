@@ -22,8 +22,23 @@ cp .env.example .env              # completar contraseñas; DATABASE_ADMIN_URL =
 npm run db:bootstrap              # crea roles erp_owner / erp_app / erp_backup y la base
 npm run db:migrate                # aplica migraciones (rol erp_owner)
 npm run db:seed                   # catálogos base: IVA, comprobantes, alícuotas, bancos, roles, permisos
+npm run admin:create -- admin "Nombre Apellido"   # primer administrador; muestra una contraseña temporal
 npm run dev
 ```
+
+El primer ingreso con la contraseña temporal obliga a cambiarla. Desde **Administración del sistema**
+se crean los demás usuarios, se asignan roles, se ajustan los permisos de cada rol y se cierran sesiones.
+`admin:create` solo funciona mientras no exista ningún administrador activo.
+
+## Seguridad de acceso
+
+- Contraseñas con Argon2id; nunca se guardan ni se muestran en claro (la temporal se muestra una sola vez).
+- Sesiones en base de datos (la cookie lleva solo un token aleatorio; se guarda su hash). Vencen por
+  inactividad (30 min) y por duración máxima (12 h); ambos valores están en `configuration`.
+- Bloqueo temporal tras 5 intentos fallidos (15 min) y límite de intentos por IP.
+- Cada acción verifica sesión, permiso y datos en el servidor (`executeAction`); los intentos sin
+  permiso quedan en auditoría. El menú solo oculta lo que el usuario no puede usar.
+- CSP con nonce por petición (`src/proxy.ts`) y cabeceras de seguridad (`next.config.ts`).
 
 Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en producción).
 
