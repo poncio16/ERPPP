@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, Badge, Card, LinkButton, PageHeader } from "@/components/ui";
 import { formatCuit } from "@/lib/cuit";
@@ -195,6 +196,12 @@ export async function PartyDetailPage({ kind, id, saved }: { kind: PartyKind; id
               <p className="mt-1 text-xs text-slate-500">
                 {balance.startsWith("-") ? "Saldo a favor del " + ui.singular.toLowerCase() : "Positivo = deuda pendiente"}
               </p>
+              <Link
+                href={`/cuentas-corrientes/${ui.kind === "client" ? "clientes" : "proveedores"}/${party.id}`}
+                className="mt-3 inline-block text-sm text-brand-700 hover:underline"
+              >
+                Ver cuenta corriente
+              </Link>
             </Card>
           )}
           {canDeactivate && (

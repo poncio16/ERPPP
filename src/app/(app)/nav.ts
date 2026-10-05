@@ -29,6 +29,13 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: "Cuentas corrientes",
+    items: [
+      { href: "/cuentas-corrientes/clientes", label: "Clientes", permission: "accounts.read" },
+      { href: "/cuentas-corrientes/proveedores", label: "Proveedores", permission: "accounts.read" },
+    ],
+  },
+  {
     title: "Administración del sistema",
     items: [
       { href: "/admin/usuarios", label: "Usuarios", permission: "users.manage" },

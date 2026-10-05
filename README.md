@@ -59,6 +59,13 @@ Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en 
   Los importes no se editan: se anula el registro (queda en el historial, con reversión del movimiento)
   y se usa "Registrar corregido", que libera el número y precarga los datos. Solo vencimiento, concepto,
   descripción y referencia externa se corrigen en el lugar, con auditoría.
+- **Cuentas corrientes** (Hito 4): listado por cliente y por proveedor con vencido, a vencer, saldo a favor
+  y saldo, con filtros y totales; ficha con resumen (saldo, vencido, a vencer, facturado/comprado y
+  cobrado/pagado del período, saldo a favor, última operación, última cobranza/pago), movimientos con saldo
+  anterior y saldo progresivo, y composición del saldo por comprobante. El saldo surge del libro de
+  movimientos y la pantalla avisa si no coincide con la composición (invariante G.14-1). Exportación a
+  Excel con importes numéricos (`/api/cuentas-corrientes/{clientes|proveedores}/{id}/excel`, permiso
+  `reports.export`, auditada) e impresión desde el navegador.
 
 ## Pruebas
 
