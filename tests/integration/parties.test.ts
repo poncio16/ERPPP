@@ -155,9 +155,10 @@ describe("Clientes", () => {
     expect(c).toMatchObject({ status: "INACTIVE", deactivationReason: "Cerró el local", deactivatedBy: ctx.userId });
     expect(c.deactivatedAt).toBeInstanceOf(Date);
     const listed = await listParties(db, ctx, "client", { q: c.code, status: "ACTIVE", page: 1, vatConditionId: null, provinceId: null });
-    expect(listed.rows).toHaveLength(0);
+    // La búsqueda por código también busca dígitos en la CUIT: se controla este cliente, no el total.
+    expect(listed.rows.map((r) => r.id)).not.toContain(id);
     const all = await listParties(db, ctx, "client", { q: c.code, status: "ALL", page: 1, vatConditionId: null, provinceId: null });
-    expect(all.rows.map((r) => r.id)).toEqual([id]);
+    expect(all.rows.map((r) => r.id)).toContain(id);
 
     ok(await run(ctx, reactivateClientDef, { id: String(id), version: "2" }));
     expect((await getParty(db, ctx, "client", id)).status).toBe("ACTIVE");

@@ -36,6 +36,14 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: "Tesorería",
+    items: [
+      { href: "/caja", label: "Caja", permission: "cash.read" },
+      { href: "/bancos", label: "Bancos", permission: "banks.read" },
+      { href: "/transferencias", label: "Transferencias internas", permission: "banks.read" },
+    ],
+  },
+  {
     title: "Administración del sistema",
     items: [
       { href: "/admin/usuarios", label: "Usuarios", permission: "users.manage" },

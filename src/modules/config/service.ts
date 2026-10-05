@@ -27,3 +27,9 @@ export async function getConfig<K extends ConfigKey>(db: DbOrTx, key: K): Promis
   const [row] = await db.select({ value: configuration.value }).from(configuration).where(eq(configuration.key, key));
   return (row?.value ?? DEFAULTS[key]) as ConfigValue<K>;
 }
+
+/** Fecha de cierre de período (`locked_until_date`): no se registra nada con fecha igual o anterior. */
+export async function lockedUntil(db: DbOrTx): Promise<string | null> {
+  const v = await getConfig(db, "locked_until_date");
+  return typeof v === "string" && v ? v : null;
+}

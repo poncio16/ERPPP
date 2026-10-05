@@ -66,6 +66,14 @@ Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en 
   movimientos y la pantalla avisa si no coincide con la composición (invariante G.14-1). Exportación a
   Excel con importes numéricos (`/api/cuentas-corrientes/{clientes|proveedores}/{id}/excel`, permiso
   `reports.export`, auditada) e impresión desde el navegador.
+- **Caja y bancos** (Hito 5): cajas y cuentas bancarias (alta por el administrador), un saldo inicial por
+  cuenta, movimientos manuales solo con conceptos habilitados (gastos bancarios, aportes, retiros, gastos
+  menores, etc.), reversión de movimientos manuales, transferencias entre cuentas propias (depósito de
+  efectivo, extracción, entre bancos) con anulación, y arqueo y cierre de caja con registro de la
+  diferencia. Los saldos surgen de un único libro de tesorería; la caja no queda en negativo
+  (`cash_allow_negative`) y un banco en negativo pide confirmación. Bancos muestra saldo contable y saldo
+  disponible (descontando cheques propios pendientes de débito). Una caja cerrada no acepta movimientos
+  con fecha igual o anterior al cierre, también controlado por la base (migración `0002`).
 
 ## Pruebas
 

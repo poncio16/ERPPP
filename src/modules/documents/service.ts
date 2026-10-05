@@ -1,10 +1,11 @@
 import Decimal from "decimal.js";
 import { aliasedTable, and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql, type SQL } from "drizzle-orm";
 import { diffFields, recordAudit } from "@/modules/audit/service";
-import { getConfig } from "@/modules/config/service";
+import { lockedUntil } from "@/modules/config/service";
 import { computeDocumentTotals, formatDocumentNumber } from "@/modules/tax/calc";
 import { checkLetterVatCondition, requiresJurisdiction, taxesValidAt, vatTolerance } from "@/modules/tax/service";
 import { DomainError, ValidationError } from "@/lib/errors";
+import { pgError } from "@/lib/pg-error";
 import { todayIso } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { assertPermission } from "@/server/authorization";
@@ -89,10 +90,6 @@ export async function checkDuplicate(
   return dup ? { duplicate: true as const, message: duplicateError(dup).message, id: dup.id } : { duplicate: false as const };
 }
 
-async function lockedUntil(db: DbOrTx): Promise<string | null> {
-  const v = await getConfig(db, "locked_until_date");
-  return typeof v === "string" && v ? v : null;
-}
 
 async function loadParty(tx: DbOrTx, direction: Direction, partyId: number) {
   if (direction === "ISSUED") {
@@ -134,10 +131,6 @@ async function partyBalance(tx: DbOrTx, direction: Direction, partyId: number): 
   return new Decimal(rows[0]?.balance ?? "0");
 }
 
-const pgError = (e: unknown) => {
-  const err = ((e as { cause?: unknown }).cause ?? e) as { code?: string; constraint?: string };
-  return { code: err.code, constraint: err.constraint };
-};
 
 export interface RegisterResult {
   id: number;
