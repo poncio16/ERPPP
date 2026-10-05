@@ -1,0 +1,18 @@
+# Entorno de desarrollo: PostgreSQL 16 con zona horaria de Argentina.
+# Uso: docker compose up -d db   (luego npm run db:bootstrap && npm run db:migrate && npm run db:seed)
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      TZ: America/Argentina/Buenos_Aires
+      PGTZ: America/Argentina/Buenos_Aires
+    ports:
+      - "5432:5432"
+    volumes:
+      - erp_pgdata:/var/lib/postgresql/data
+
+volumes:
+  erp_pgdata:
