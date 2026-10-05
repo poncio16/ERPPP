@@ -135,3 +135,92 @@ export function Th({ className, ...props }: ComponentProps<"th">) {
 export function Td({ className, ...props }: ComponentProps<"td">) {
   return <td className={cx("whitespace-nowrap px-4 py-2.5 text-slate-700", className)} {...props} />;
 }
+
+/** Select con etiqueta y errores. `options` en el orden en que se muestran. */
+export function SelectField({
+  label,
+  name,
+  errors,
+  hint,
+  options,
+  placeholder,
+  ...select
+}: ComponentProps<"select"> & {
+  label: string;
+  name: string;
+  errors?: string[];
+  hint?: string;
+  options: { value: string | number; label: string }[];
+  placeholder?: string;
+}) {
+  const id = select.id ?? `f-${name}`;
+  return (
+    <div>
+      <Label htmlFor={id}>{label}</Label>
+      <div className="mt-1">
+        <Select id={id} name={name} aria-invalid={errors?.length ? true : undefined} {...select}>
+          {placeholder !== undefined && <option value="">{placeholder}</option>}
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+      {hint && !errors?.length && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+      <FieldErrors errors={errors} />
+    </div>
+  );
+}
+
+export function TextareaField({
+  label,
+  name,
+  errors,
+  className,
+  ...props
+}: ComponentProps<"textarea"> & { label: string; name: string; errors?: string[] }) {
+  const id = props.id ?? `f-${name}`;
+  return (
+    <div className={className}>
+      <Label htmlFor={id}>{label}</Label>
+      <textarea id={id} name={name} rows={3} className={cx(inputClass, "mt-1")} aria-invalid={errors?.length ? true : undefined} {...props} />
+      <FieldErrors errors={errors} />
+    </div>
+  );
+}
+
+/** Paginación simple por número de página, conservando los filtros de la URL. */
+export function Pagination({
+  page,
+  pageSize,
+  total,
+  href,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  href: (page: number) => string;
+}) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (pages <= 1) return null;
+  return (
+    <nav className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm" aria-label="Paginación">
+      <span className="text-slate-600">
+        Página {page} de {pages} · {total} registros
+      </span>
+      <div className="flex gap-2">
+        {page > 1 && (
+          <LinkButton variant="secondary" href={href(page - 1)}>
+            Anterior
+          </LinkButton>
+        )}
+        {page < pages && (
+          <LinkButton variant="secondary" href={href(page + 1)}>
+            Siguiente
+          </LinkButton>
+        )}
+      </div>
+    </nav>
+  );
+}

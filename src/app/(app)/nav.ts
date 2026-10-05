@@ -15,6 +15,13 @@ export interface NavSection {
 export const NAV: NavSection[] = [
   { title: "General", items: [{ href: "/", label: "Inicio" }] },
   {
+    title: "Maestros",
+    items: [
+      { href: "/clientes", label: "Clientes", permission: "clients.read" },
+      { href: "/proveedores", label: "Proveedores", permission: "suppliers.read" },
+    ],
+  },
+  {
     title: "Administración del sistema",
     items: [
       { href: "/admin/usuarios", label: "Usuarios", permission: "users.manage" },

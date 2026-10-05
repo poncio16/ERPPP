@@ -42,6 +42,15 @@ se crean los demás usuarios, se asignan roles, se ajustan los permisos de cada 
 
 Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en producción).
 
+## Módulos disponibles
+
+- **Administración del sistema** (Hito 1): usuarios, roles y permisos, sesiones activas.
+- **Clientes y proveedores** (Hito 2): alta, modificación, consulta con búsqueda y filtros, baja lógica
+  con motivo y reactivación, historial de cambios. Se valida la CUIT/CUIL (dígito verificador) y el CBU.
+  Un segundo registro con la misma CUIT solo se admite con motivo, con el parámetro
+  `allow_duplicate_tax_id` habilitado y con el permiso `*.duplicate_tax_id` (por defecto, solo Administrador).
+  La baja exige saldo cero y ningún cheque en circulación.
+
 ## Pruebas
 
 ```bash
