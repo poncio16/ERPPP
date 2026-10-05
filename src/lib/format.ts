@@ -22,3 +22,17 @@ export function formatDate(iso: string | null | undefined): string {
   const [y, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${y}`;
 }
+
+const isoDayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" });
+
+/** Fecha de hoy en Argentina como AAAA-MM-DD (para comparar con fechas de negocio). */
+export function todayIso(now: Date = new Date()): string {
+  return isoDayFmt.format(now);
+}
+
+/** "2026-10-01" → "10/2026". */
+export function formatPeriod(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const [y, m] = iso.split("-");
+  return `${m}/${y}`;
+}

@@ -22,6 +22,13 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: "Comprobantes",
+    items: [
+      { href: "/comprobantes-emitidos", label: "Comprobantes emitidos", permission: "documents.read" },
+      { href: "/comprobantes-recibidos", label: "Comprobantes recibidos", permission: "documents.read" },
+    ],
+  },
+  {
     title: "Administración del sistema",
     items: [
       { href: "/admin/usuarios", label: "Usuarios", permission: "users.manage" },
