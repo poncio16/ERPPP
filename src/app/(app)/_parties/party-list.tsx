@@ -109,14 +109,14 @@ export async function PartyListPage({ kind, searchParams }: { kind: PartyKind; s
             {rows.map((r) => (
               <tr key={r.id} className="hover:bg-slate-50">
                 <Td className="font-mono text-xs">{r.code}</Td>
-                <Td>
+                <Td className="whitespace-normal">
                   <Link href={`${ui.basePath}/${r.id}`} className="font-medium text-brand-700 hover:underline">
                     {r.legalName}
                   </Link>
                 </Td>
                 <Td className="font-mono text-xs">{r.taxId ? formatCuit(r.taxId) : "—"}</Td>
-                <Td>{r.vatCondition}</Td>
-                <Td>{[r.city, r.province].filter(Boolean).join(", ") || "—"}</Td>
+                <Td className="whitespace-normal">{r.vatCondition}</Td>
+                <Td className="whitespace-normal">{[r.city, r.province].filter(Boolean).join(", ") || "—"}</Td>
                 <Td>{r.phone ?? "—"}</Td>
                 {showBalance && <Td className="text-right tabular-nums">{formatMoney(r.balance ?? "0")}</Td>}
                 <Td>{r.status === "ACTIVE" ? <Badge tone="green">Activo</Badge> : <Badge tone="red">Baja</Badge>}</Td>

@@ -97,9 +97,9 @@ export default async function BackupsPage() {
             )}
             {list.runs.map((r) => (
               <tr key={r.id}>
-                <Td className="whitespace-normal!">{formatDateTime(r.finishedAt ?? r.startedAt)}</Td>
-                <Td className="whitespace-normal!">{KIND_LABELS[r.kind] ?? r.kind}</Td>
-                <Td className="max-w-xs break-all whitespace-normal!">
+                <Td className="whitespace-normal">{formatDateTime(r.finishedAt ?? r.startedAt)}</Td>
+                <Td className="whitespace-normal">{KIND_LABELS[r.kind] ?? r.kind}</Td>
+                <Td className="max-w-xs break-all whitespace-normal">
                   <span className="font-mono text-xs">{r.fileName ?? "—"}</span>
                   {r.sha256 && (
                     <span className="block font-mono text-xs text-slate-400" title={r.sha256}>
@@ -117,7 +117,7 @@ export default async function BackupsPage() {
                 <Td>
                   <Status status={r.status} />
                 </Td>
-                <Td className="text-xs whitespace-normal!">
+                <Td className="text-xs whitespace-normal">
                   {r.status === "OK" && (
                     <>
                       <span className="block">{r.prunedAt ? `Servidor: borrado por retención (${formatDateTime(r.prunedAt)})` : r.localExists ? "Servidor: sí" : "Servidor: no está el archivo"}</span>

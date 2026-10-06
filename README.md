@@ -26,6 +26,17 @@ npm run admin:create -- admin "Nombre Apellido"   # primer administrador; muestr
 npm run dev
 ```
 
+Para una base de demostración o desarrollo con los datos ficticios de la sección 45 (10 clientes,
+10 proveedores, 20 + 20 comprobantes, cobranzas, pagos, cheques y movimientos de tesorería):
+
+```bash
+npm run db:seed:demo              # requiere ALLOW_DEMO_SEED=true; nunca corre con NODE_ENV=production
+npm run db:seed:demo -- --usuario otro_admin   # por defecto se registra a nombre de "admin"
+```
+
+Se carga solo en una base sin clientes, proveedores ni comprobantes, en una única transacción y con
+las mismas acciones que la interfaz (todo queda auditado). Las fechas son relativas al día de la carga.
+
 El primer ingreso con la contraseña temporal obliga a cambiarla. Desde **Administración del sistema**
 se crean los demás usuarios, se asignan roles, se ajustan los permisos de cada rol y se cierran sesiones.
 `admin:create` solo funciona mientras no exista ningún administrador activo.
@@ -38,7 +49,7 @@ se crean los demás usuarios, se asignan roles, se ajustan los permisos de cada 
 - Bloqueo temporal tras 5 intentos fallidos (15 min) y límite de intentos por IP.
 - Cada acción verifica sesión, permiso y datos en el servidor (`executeAction`); los intentos sin
   permiso quedan en auditoría. El menú solo oculta lo que el usuario no puede usar.
-- CSP con nonce por petición (`src/proxy.ts`) y cabeceras de seguridad (`next.config.ts`).
+- CSP con nonce por petición para los scripts (`src/proxy.ts`) y cabeceras de seguridad (`next.config.ts`).
 
 Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en producción).
 
@@ -125,13 +136,29 @@ Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en 
 ## Pruebas
 
 ```bash
-npm test            # crea la base erp_test desde cero, aplica migraciones y corre todas las pruebas
+npm test                  # crea la base erp_test desde cero, aplica migraciones y corre todas las pruebas
 npm run typecheck
 npm run lint
+npm run build && npm run test:e2e     # pruebas en el navegador (Playwright) contra la app compilada
+npm run build && npm run test:acceptance   # todo lo anterior y genera tests/acceptance/matriz.md
 ```
 
-Las pruebas de `tests/db/` intentan violar cada regla financiera escribiendo directamente en la base
-con el rol de la aplicación; todas deben ser rechazadas por PostgreSQL (última barrera de defensa).
+- `tests/db/` intenta violar cada regla financiera escribiendo directamente en la base con el rol de la
+  aplicación; todas deben ser rechazadas por PostgreSQL (última barrera de defensa).
+- `tests/integration/global.test.ts` (INT-GLB, §47) arma en una base nueva un escenario con 3 clientes y
+  3 proveedores y compara comprobantes, cuentas corrientes, imputaciones, caja, bancos, cheques,
+  tesorería, reportes y dashboard contra valores calculados a mano en
+  `tests/acceptance/fixtures/global-expected.ts`, con todos los invariantes de G.14 en $0.
+- `tests/integration/properties.test.ts` (PROP-01) genera secuencias aleatorias de comprobantes, NC, ND,
+  cobranzas, pagos, imputaciones y anulaciones (fast-check) y comprueba que nunca quedan saldos
+  negativos, sobreimputaciones ni invariantes distintos de $0. Otra semilla: `PROP_SEED=123 npm test`.
+- `e2e/` (Playwright) recorre en el navegador las pruebas integrales de cliente y proveedor de §47, con
+  descarga del recibo y de la orden de pago, y revisa las pantallas principales. Usa su propia base
+  (`erp_e2e`) y el puerto 3200; con un Chromium propio, `E2E_CHROMIUM_PATH=/ruta/al/chrome`.
+- La matriz de aceptación (`tests/acceptance/matriz.md`, §48) **se genera** cruzando
+  `tests/acceptance/criterios.ts` con el reporte de la ejecución: un criterio solo figura en PASS si
+  todas sus pruebas corrieron y pasaron; sin el navegador (`--sin-navegador`) esos criterios quedan
+  BLOQUEADO.
 
 ## Base de datos
 
@@ -150,7 +177,8 @@ src/app/                 rutas Next.js (UI)
 src/modules/<módulo>/    acciones, servicio, repositorio, esquemas y componentes por dominio
 src/server/db/           cliente y esquema Drizzle
 database/                migraciones y seeds
-scripts/                 bootstrap, migraciones, seeds, backup
-tests/                   pruebas de base de datos, integración y aceptación
+scripts/                 bootstrap, migraciones, seeds, backup, matriz de aceptación
+tests/                   pruebas unitarias, de base de datos, de integración y catálogo de aceptación
+e2e/                     pruebas en el navegador (Playwright)
 docs/                    diseño y runbooks
 ```

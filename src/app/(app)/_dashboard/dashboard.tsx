@@ -12,7 +12,7 @@ function Kpi({ label, value, href, tone, hint }: { label: string; value: string;
   return (
     <Link href={href as never} className="group block rounded-lg border border-slate-200 p-3 transition hover:border-brand-600 hover:shadow-sm">
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={cx("mt-1 text-lg font-semibold tabular-nums", tone === "red" ? "text-red-700" : tone === "green" ? "text-emerald-700" : "text-slate-900")}>{value}</p>
+      <p className={cx("mt-1 text-lg font-semibold tabular-nums wrap-anywhere", tone === "red" ? "text-red-700" : tone === "green" ? "text-emerald-700" : "text-slate-900")}>{value}</p>
       {hint && <p className="text-xs text-slate-500">{hint}</p>}
     </Link>
   );
@@ -39,7 +39,8 @@ function PartySection({ side, data }: { side: "AR" | "AP"; data: PartySide }) {
   const slug = ar ? "clientes" : "proveedores";
   return (
     <Section title={ar ? "Cuentas por cobrar" : "Cuentas por pagar"} href={`/reportes/${slug}-antiguedad`} linkLabel="Antigüedad de saldos">
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      {/* Desde xl la sección ocupa media pantalla: cuatro indicadores en fila no entran con importes millonarios. */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-2">
         <Kpi label="Total" value={formatMoney(data.total)} href={`/reportes/${slug}-deuda`} hint={data.credit !== "0.00" ? `Neto de ${formatMoney(data.credit)} sin aplicar` : undefined} />
         <Kpi label="Vencido" value={formatMoney(data.overdue)} href={`/reportes/${slug}-vencimientos`} tone={data.overdue !== "0.00" ? "red" : undefined} />
         <Kpi label="A vencer" value={formatMoney(data.notDue)} href={`/reportes/${slug}-vencimientos`} />
@@ -104,7 +105,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       )}
       {treasury && (
         <Section title="Tesorería" href="/tesoreria" linkLabel="Posición consolidada">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
             <Kpi label="Caja" value={formatMoney(treasury.cash)} href="/caja" />
             <Kpi label="Bancos" value={formatMoney(treasury.bankBook)} href="/bancos" hint={`Disponible ${formatMoney(treasury.bankAvailable)}`} />
             <Kpi label="Cheques en cartera" value={formatMoney(treasury.portfolio)} href="/reportes/cartera-cheques" hint={`${treasury.portfolioCount} cheques`} />

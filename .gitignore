@@ -42,3 +42,7 @@ next-env.d.ts
 
 !.env.example
 .maintenance
+
+# Pruebas en el navegador
+/test-results/
+/playwright-report/

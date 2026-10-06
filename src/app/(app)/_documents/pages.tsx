@@ -146,12 +146,12 @@ export async function DocumentListPage({ direction, searchParams }: { direction:
               return (
                 <tr key={r.id} className="hover:bg-slate-50">
                   <Td>{formatDate(r.issueDate)}</Td>
-                  <Td>
+                  <Td className="whitespace-normal">
                     <Link href={`${ui.basePath}/${r.id}`} className="font-medium text-brand-700 hover:underline">
-                      {r.typeName} {formatDocumentNumber(r.pointOfSale, r.number)}
+                      {r.typeName} <span className="whitespace-nowrap">{formatDocumentNumber(r.pointOfSale, r.number)}</span>
                     </Link>
                   </Td>
-                  <Td>
+                  <Td className="whitespace-normal">
                     {r.partyName}
                     {r.partyTaxId && <span className="block text-xs text-slate-500">{formatCuit(r.partyTaxId)}</span>}
                   </Td>
