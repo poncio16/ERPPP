@@ -1,0 +1,26 @@
+# Copia externa de backups: monta un bucket S3 (AWS, Backblaze B2, Cloudflare R2, etc.) con rclone en
+# /mnt/erp-externo, la carpeta BACKUP_OFFSITE_HOST_DIR del .env. Ver docs/runbooks/instalacion-produccion.md.
+# Instalar: cp deploy/systemd/erp-externo.service /etc/systemd/system/ && systemctl enable --now erp-externo
+# Requiere: apt install rclone fuse3, un remoto "externo" creado con "rclone config" (como root) y la
+# carpeta vacía creada una vez con: mkdir -p /mnt/erp-externo && chattr +i /mnt/erp-externo
+# (inmutable: si el montaje se cae, la copia externa falla y se ve en la pantalla Backups en lugar de
+# quedar escrita en el disco del propio servidor).
+[Unit]
+Description=ERP: carpeta externa de backups (rclone)
+Wants=network-online.target
+After=network-online.target
+# Montado antes de que Docker levante la aplicación, para que el contenedor lo vea.
+Before=docker.service
+
+[Service]
+Type=notify
+# uid/gid 1000: el usuario con el que corre el contenedor de la aplicación.
+ExecStart=/usr/bin/rclone mount externo:erp-backups /mnt/erp-externo \
+  --allow-other --uid 1000 --gid 1000 --umask 077 \
+  --vfs-cache-mode writes --dir-cache-time 1m
+ExecStop=/bin/fusermount3 -u /mnt/erp-externo
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

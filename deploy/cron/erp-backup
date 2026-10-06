@@ -1,11 +1,12 @@
 # Backups del ERP (sección J del diseño). Copiar a /etc/cron.d/erp-backup en el servidor.
-# Las horas son las del servidor, que debe estar en hora argentina (TZ=America/Argentina/Buenos_Aires).
-# Ajustar el usuario (erp) y la carpeta de la aplicación (/opt/erp). El .env de esa carpeta aporta las variables.
+# Las horas son las del servidor, que debe estar en hora argentina (timedatectl set-timezone America/Argentina/Buenos_Aires).
+# Instalación con Docker (docs/runbooks/instalacion-produccion.md): el usuario erp pertenece al grupo
+# docker y la aplicación está en /opt/erp, cuyo .env aporta las variables y COMPOSE_FILE.
 SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin:/bin
 
 # Backup automático diario a las 02:00, con copia cifrada fuera del servidor y retención.
-0 2 * * * erp cd /opt/erp && npm run -s db:backup -- --auto >> /var/log/erp/backup.log 2>&1
+0 2 * * * erp cd /opt/erp && docker compose run --rm --no-deps -T app npm run -s db:backup -- --auto >> /var/log/erp/backup.log 2>&1
 
 # Verificación semanal del último backup (domingo 04:30): restaura en erp_verify y compara totales e invariantes.
-30 4 * * 0 erp cd /opt/erp && npm run -s db:backup:verify -- --latest >> /var/log/erp/backup-verify.log 2>&1
+30 4 * * 0 erp cd /opt/erp && docker compose run --rm --no-deps -T app npm run -s db:backup:verify -- --latest >> /var/log/erp/backup-verify.log 2>&1

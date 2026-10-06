@@ -41,6 +41,14 @@ El primer ingreso con la contraseña temporal obliga a cambiarla. Desde **Admini
 se crean los demás usuarios, se asignan roles, se ajustan los permisos de cada rol y se cierran sesiones.
 `admin:create` solo funciona mientras no exista ningún administrador activo.
 
+## Producción
+
+Instalación en un servidor (VPS) con Docker Compose: PostgreSQL 16, la aplicación y Caddy con HTTPS
+automático, más backups programados con copia externa cifrada. Paso a paso en
+[`docs/runbooks/instalacion-produccion.md`](docs/runbooks/instalacion-produccion.md); los archivos están en
+`Dockerfile`, `compose.produccion.yml` y `deploy/` (Caddyfile, generador del `.env`, script de
+actualización, cron de backups y montaje de la copia externa).
+
 ## Seguridad de acceso
 
 - Contraseñas con Argon2id; nunca se guardan ni se muestran en claro (la temporal se muestra una sola vez).
@@ -180,5 +188,6 @@ database/                migraciones y seeds
 scripts/                 bootstrap, migraciones, seeds, backup, matriz de aceptación
 tests/                   pruebas unitarias, de base de datos, de integración y catálogo de aceptación
 e2e/                     pruebas en el navegador (Playwright)
-docs/                    diseño y runbooks
+docs/                    diseño y runbooks (backup y restauración, instalación en producción)
+deploy/                  producción: Caddyfile, .env de ejemplo, actualización, cron y montaje externo
 ```

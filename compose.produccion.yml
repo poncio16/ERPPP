@@ -1,0 +1,81 @@
+# Producción (D1: VPS): PostgreSQL 16 + ERP + Caddy con HTTPS automático.
+# Se usa desde la carpeta de la aplicación; el .env (generado con deploy/generar-env.sh) define
+# COMPOSE_FILE=compose.produccion.yml, así que alcanza con "docker compose ...".
+# Guía completa: docs/runbooks/instalacion-produccion.md.
+name: erp
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env}
+      TZ: America/Argentina/Buenos_Aires
+      PGTZ: America/Argentina/Buenos_Aires
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Sin puertos publicados: la base solo es accesible desde la red interna de Docker.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  app:
+    build: .
+    image: erp-app:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: America/Argentina/Buenos_Aires
+      # Rutas dentro del contenedor; las carpetas del servidor se eligen con BACKUP_HOST_DIR y BACKUP_OFFSITE_HOST_DIR.
+      BACKUP_DIR: /var/backups/erp
+      BACKUP_OFFSITE_DIR: ${BACKUP_OFFSITE_HOST_DIR:+/var/backups/erp-externo}
+    volumes:
+      - ${BACKUP_HOST_DIR:-/var/backups/erp}:/var/backups/erp
+      # Los backups del cron corren en un contenedor nuevo cada vez (docker compose run), que ve el montaje
+      # externo tal como está en ese momento.
+      - ${BACKUP_OFFSITE_HOST_DIR:-/mnt/erp-externo}:/var/backups/erp-externo
+      # Archivo de mantenimiento compartido entre la web y las tareas de consola (restauración).
+      - erp_state:/var/lib/erp
+    depends_on:
+      db:
+        condition: service_healthy
+    # Sin puertos publicados: solo Caddy llega a la aplicación (así nadie puede falsear X-Forwarded-For).
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *logging
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      ERP_DOMAIN: ${ERP_DOMAIN:?Falta ERP_DOMAIN en .env}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging: *logging
+
+volumes:
+  pgdata:
+  erp_state:
+  caddy_data:
+  caddy_config:

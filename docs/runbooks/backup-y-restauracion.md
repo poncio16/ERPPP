@@ -3,6 +3,10 @@
 Procedimientos de la sección J del diseño. Todo lo que dice "consola" se ejecuta en el servidor, en la
 carpeta de la aplicación, con el `.env` de producción.
 
+En la instalación con Docker ([instalacion-produccion.md](instalacion-produccion.md)) la puesta en marcha
+de la sección 0 ya está en su paso 4, y cada `npm run …` de este runbook se ejecuta dentro del contenedor
+de la aplicación (la tabla de la sección 6 de esa guía tiene los comandos exactos).
+
 ## 0. Puesta en marcha (una sola vez)
 
 1. **Cliente de PostgreSQL de la misma versión mayor que el servidor** (16): `pg_dump --version`. Si no está
