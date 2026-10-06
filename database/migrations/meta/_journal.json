@@ -15,6 +15,13 @@
       "when": 1791221602888,
       "tag": "0001_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791243279784,
+      "tag": "0002_cash_closure_lock",
+      "breakpoints": true
     }
   ]
 }

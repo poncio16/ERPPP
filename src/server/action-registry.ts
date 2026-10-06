@@ -4,6 +4,7 @@
  */
 import "@/modules/documents/action-defs";
 import "@/modules/parties/action-defs";
+import "@/modules/treasury/action-defs";
 import "@/modules/users/action-defs";
 
 export { actionRegistry } from "./action";
