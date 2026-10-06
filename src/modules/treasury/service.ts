@@ -65,7 +65,7 @@ export async function accountBalance(db: DbOrTx, ref: AccountRef, upTo?: string)
   return new Decimal(row?.balance ?? 0);
 }
 
-async function lastClosureDate(db: DbOrTx, cashBoxId: number): Promise<string | null> {
+export async function lastClosureDate(db: DbOrTx, cashBoxId: number): Promise<string | null> {
   const [row] = await db
     .select({ date: cashClosures.closureDate })
     .from(cashClosures)
@@ -183,7 +183,7 @@ export async function recordMovement(tx: Tx, ctx: ServiceContext, m: MovementInp
 }
 
 /** Bloquea las cuentas en un orden fijo (caja antes que banco, luego por id) para evitar interbloqueos. */
-async function lockAccounts(tx: Tx, refs: AccountRef[]) {
+export async function lockAccounts(tx: Tx, refs: AccountRef[]) {
   const sorted = [...refs].sort((a, b) => (a.kind === b.kind ? a.id - b.id : a.kind === "CASH" ? -1 : 1));
   const out: TreasuryAccount[] = [];
   for (const r of sorted) out.push(await loadAccount(tx, r, true));

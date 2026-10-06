@@ -12,8 +12,9 @@ import { annulDocumentDef, registerIssuedDocumentDef, registerReceivedDocumentDe
 import { todayIso } from "@/lib/format";
 import { executeAction, type ActionDef } from "@/server/action";
 import type { ServiceContext } from "@/server/context";
-import { appPool, docType, makeCashBox, makeCashCollection, makeClient, makeSupplier, nextSeq, ownerPool as dbOwnerPool, q, tax } from "../db/helpers";
+import { appPool, docType, makeCashBox, makeClient, makeSupplier, nextSeq, ownerPool as dbOwnerPool, tax } from "../db/helpers";
 import { ctxWithRoles, db, lastAudit, meta, ownerPool, pool } from "./helpers";
+import { cashLine, collect } from "./operations-fixtures";
 
 afterAll(async () => {
   await pool.end();
@@ -100,17 +101,13 @@ describe("Cuentas corrientes", () => {
         netUntaxed: "100.000,00",
       }),
     ).id;
-    // La cobranza todavía no tiene servicio (Hito 6): se registra con el mismo asiento que generará ese servicio.
-    const { collectionId } = await makeCashCollection(client, "40000", await makeCashBox());
-    await q(
-      `INSERT INTO customer_account_entries (client_id, entry_date, entry_type, collection_id, credit, description)
-       VALUES ($1, DATE '2026-10-02', 'COLLECTION', $2, 40000, 'Cobranza')`,
-      [client, collectionId],
-    );
+    // Cobranza de $40.000 en efectivo imputada al comprobante, como desde la interfaz.
+    const r = await collect(client, [cashLine(await makeCashBox(), "40.000,00")], [{ documentId: id, amount: "40000" }]);
+    if (!r.ok) throw new Error(JSON.stringify(r));
 
     const s = await accountSummary(db, ctx, "ISSUED", client, fullPeriod);
-    expect(s).toMatchObject({ balance: "60000.00", notDue: "100000.00", overdue: "0.00", credit: "40000.00", billed: "100000.00", settled: "40000.00", difference: "0.00" });
-    expect(s.lastSettlementDate).toBe("2026-10-02");
+    expect(s).toMatchObject({ balance: "60000.00", notDue: "60000.00", overdue: "0.00", credit: "0.00", billed: "100000.00", settled: "40000.00", difference: "0.00" });
+    expect(s.lastSettlementDate).toBe(today);
 
     const st = await accountStatement(db, ctx, "ISSUED", client, fullPeriod);
     expect(st.rows.map((r) => [r.entryType, r.documentId, r.debit, r.credit])).toEqual(
