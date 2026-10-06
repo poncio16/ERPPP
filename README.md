@@ -92,6 +92,20 @@ Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en 
   `/imputaciones`, consumen el crédito con un débito interno `INT_DEVOLUCION` y mueven caja o banco; se
   listan y anulan en `/devoluciones`. `/admin/consistencia` (permiso `consistency.run`) recalcula los
   invariantes G.14 y muestra PASS/FAIL con los casos que no cumplen; cada ejecución queda auditada.
+- **Reportes, dashboard y flujo de fondos** (Hito 8): `/reportes` (permiso `reports.read` más el
+  permiso de lectura del módulo de origen) con 22 reportes: comprobantes, cobranzas/pagos, deuda,
+  vencimientos, antigüedad de saldos (tramos 0–30 a >180, vencido y a vencer por separado, fecha de
+  corte elegible y créditos sin aplicar en columna aparte), cuenta corriente y retenciones de clientes y
+  proveedores; libro de caja y de banco, cartera de cheques, cheques emitidos, ingresos y egresos por
+  concepto y flujo de fondos (semanal o mensual, real vs. proyectado, columna "Atrasado", planificados
+  con recurrencia mensual); subdiario de IVA ventas y compras (control interno, no es el Libro IVA
+  Digital). Todos se exportan a Excel (números reales) y PDF desde `/api/reportes/{reporte}/{excel|pdf}`
+  con los mismos filtros de la URL (permiso `reports.export`, auditado). La antigüedad a una fecha
+  pasada se reconstruye desde el libro de cuenta corriente y las imputaciones vigentes a esa fecha, por
+  lo que su total siempre coincide con el saldo de cuenta corriente a esa fecha. El inicio (`/`) muestra
+  el dashboard (permiso `dashboard.read`) con indicadores calculados por las mismas funciones de los
+  reportes que enlazan y gráficos de evolución y de flujo con Recharts. La verificación de consistencia
+  suma el invariante G.14-8 (totales de reportes = módulos de origen).
 
 ## Pruebas
 
