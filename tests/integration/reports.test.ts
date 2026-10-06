@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import ExcelJS from "exceljs";
 import { afterAll, describe, expect, it } from "vitest";
 import { ForbiddenError } from "@/lib/errors";
+import { depositCheckDef } from "@/modules/checks/action-defs";
 import { annulCollectionDef } from "@/modules/collections/action-defs";
 import { registerIssuedDocumentDef } from "@/modules/documents/action-defs";
 import { cashFlow, addMonthsClamped, buildPeriods } from "@/modules/reports/cash-flow";
@@ -16,7 +17,7 @@ import { reportReconciliation } from "@/modules/reports/reconciliation";
 import { REPORTS, runReport } from "@/modules/reports/registry";
 import type { ReportResult } from "@/modules/reports/types";
 import { createPlannedItemDef } from "@/modules/treasury/action-defs";
-import { appPool, docType, makeCashBox, makeClient, makeSupplier, nextSeq, ownerPool as dbOwnerPool, q1, tax } from "../db/helpers";
+import { appPool, docType, makeBankAccount, makeCashBox, makeClient, makeSupplier, nextSeq, ownerPool as dbOwnerPool, q1, tax } from "../db/helpers";
 import { ctxWithRoles, db, lastAudit, ownerPool, pool } from "./helpers";
 import {
   addDays,
@@ -263,6 +264,10 @@ describe("Flujo de fondos (G.15)", () => {
     const nextWeek = await documentFor("ISSUED", client, "2.222,00", { issue: addDays(today, -1), due: addDays(today, 8) });
     const supplierDoc = await documentFor("RECEIVED", supplier, "3.333,00", { issue: addDays(today, -1), due: addDays(today, 1) });
     ok(await collect(client, [await checkLine("444,00", { paymentDate: addDays(today, 15) })]));
+    // Un cheque depositado a acreditar no se proyecta: solo los que están en cartera.
+    const deposited = ok(await collect(client, [await checkLine("555,00", { paymentDate: addDays(today, 15) })]));
+    const dep = await q1<{ id: number; version: number }>("SELECT id, version FROM received_checks WHERE id = (SELECT received_check_id FROM collection_lines WHERE collection_id = $1)", [deposited.id]);
+    ok(await run(await treasury(), depositCheckDef, { id: String(dep.id), version: String(dep.version), date: today, bankAccountId: String(await makeBankAccount()) }));
     ok(await pay(supplier, [cashLine(box, "100,00")]));
     const planned = ok(await run(await treasury(), createPlannedItemDef, { direction: "OUT", expectedDate: addDays(today, 3), amount: "77,00", description: `Alquiler ${nextSeq()}`, recurrence: "MONTHLY" }));
 
@@ -272,6 +277,7 @@ describe("Flujo de fondos (G.15)", () => {
     expect(mine(`/comprobantes-emitidos/${nextWeek}`)).toEqual([expect.objectContaining({ period: "p1", amount: "2222.00" })]);
     expect(mine(`/comprobantes-recibidos/${supplierDoc}`)).toEqual([expect.objectContaining({ period: "p0", line: "AP", amount: "3333.00" })]);
     expect(f.items.filter((i) => i.line === "CHECKS_IN" && i.amount === "444.00" && i.date === addDays(today, 15))).toHaveLength(1);
+    expect(f.items.filter((i) => i.href === `/cheques/recibidos/${dep.id}`)).toEqual([]);
     const plannedItem = await q1<{ description: string }>("SELECT description FROM planned_cash_items WHERE id = $1", [planned.id]);
     const occurrences = f.items.filter((i) => i.description === `${plannedItem.description} (mensual)`);
     expect(occurrences.map((i) => i.date)).toEqual([addDays(today, 3), addMonthsClamped(addDays(today, 3), 1)].filter((d) => d <= f.periods.at(-1)!.to));

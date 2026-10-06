@@ -13,7 +13,7 @@ import type { ReportColumn, ReportResult, ReportRow } from "./types";
  * - Saldo real inicial: caja + bancos (saldo contable) al comenzar el día de inicio.
  * - Real: ingresos y egresos registrados en tesorería desde el inicio (sin transferencias internas).
  * - Proyectado (desde hoy): saldos de comprobantes emitidos y recibidos por vencimiento, cheques de
- *   terceros en cartera (y depositados a acreditar) por fecha de pago, cheques propios pendientes
+ *   terceros en cartera por fecha de pago, cheques propios pendientes
  *   de débito por fecha de pago e ingresos/egresos planificados (con recurrencia mensual).
  * - Lo vencido e impago va a la columna "Atrasado", al comienzo; no se esconde ni se da por cobrado hoy.
  */
@@ -155,15 +155,12 @@ export async function cashFlow(db: DbOrTx, q: CashFlowQuery, today: string): Pro
     }
   }
 
-  const { rows: received } = await db.execute<{ id: number; payment_date: string; status: string; number: string; bank: string; drawer: string; amount: string }>(sql`
-    SELECT c.id, c.payment_date::text, c.status, c.number, b.name AS bank, c.drawer_name AS drawer, c.amount::text
+  // Solo cheques en cartera (G.15); los depositados a acreditar no se proyectan.
+  const { rows: received } = await db.execute<{ id: number; payment_date: string; number: string; bank: string; drawer: string; amount: string }>(sql`
+    SELECT c.id, c.payment_date::text, c.number, b.name AS bank, c.drawer_name AS drawer, c.amount::text
       FROM received_checks c JOIN banks b ON b.id = c.issuer_bank_id
-     WHERE c.status IN ('IN_PORTFOLIO','DEPOSITED')`);
-  for (const c of received) {
-    // Un cheque ya depositado se espera acreditado desde hoy aunque su fecha de pago haya pasado.
-    const date = c.status === "DEPOSITED" && c.payment_date < today ? today : c.payment_date;
-    push("CHECKS_IN", date, `Cheque ${c.bank} N° ${c.number}${c.status === "DEPOSITED" ? " (depositado)" : ""}`, c.drawer, c.amount, `/cheques/recibidos/${c.id}`);
-  }
+     WHERE c.status = 'IN_PORTFOLIO'`);
+  for (const c of received) push("CHECKS_IN", c.payment_date, `Cheque ${c.bank} N° ${c.number}`, c.drawer, c.amount, `/cheques/recibidos/${c.id}`);
 
   const { rows: issued } = await db.execute<{ id: number; payment_date: string; number: string; account: string; supplier: string | null; amount: string }>(sql`
     SELECT c.id, c.payment_date::text, c.number, a.display_name AS account, s.legal_name AS supplier, c.amount::text
@@ -254,7 +251,7 @@ export async function cashFlowReport(db: DbOrTx, q: CashFlowQuery, today: string
     `Saldo real inicial al ${formatDate(f.start)}: ${formatMoney(f.opening)} (caja + bancos, saldo contable).`,
     "Real: ingresos y egresos ya registrados en caja y bancos (las transferencias entre cuentas propias no cuentan). Proyectado (en tono atenuado): lo que se espera cobrar y pagar desde hoy.",
     "Atrasado: comprobantes vencidos e impagos, cheques en cartera con fecha de pago vencida, cheques propios no debitados y planificados sin realizar con fecha anterior a hoy.",
-    "Los cheques depositados a acreditar se proyectan en su fecha de pago o, si ya pasó, hoy. Los créditos sin aplicar (notas de crédito, anticipos) no se proyectan.",
+    "Se proyectan solo los cheques de terceros en cartera; los depositados a acreditar no se incluyen. Los créditos sin aplicar (notas de crédito, anticipos) no se proyectan.",
   ];
   if (!new Decimal(f.beyondIn).plus(f.beyondOut).isZero()) {
     notes.push(`Después del horizonte quedan ingresos proyectados por ${formatMoney(f.beyondIn)} y egresos por ${formatMoney(f.beyondOut)}, no incluidos.`);
