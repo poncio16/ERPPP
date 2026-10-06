@@ -161,8 +161,11 @@ function serializeLine(l: LineState) {
 function MiniField({ label, errors, children, className }: { label: string; errors?: string[]; children: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
-      <Label>{label}</Label>
-      <div className="mt-1">{children}</div>
+      {/* El <label> envuelve al control: queda asociado (lectores de pantalla y pruebas en el navegador). */}
+      <label className="block">
+        <span className="block text-sm font-medium text-slate-700">{label}</span>
+        <span className="mt-1 block">{children}</span>
+      </label>
       <FieldErrors errors={errors} />
     </div>
   );

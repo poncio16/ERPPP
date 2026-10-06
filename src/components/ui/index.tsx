@@ -132,8 +132,10 @@ export function Th({ className, ...props }: ComponentProps<"th">) {
   return <th scope="col" className={cx("px-4 py-2.5 text-left font-semibold text-slate-700", className)} {...props} />;
 }
 
+/** Celda sin salto de línea por defecto; con una clase `whitespace-*` propia se usa esa (cx no reemplaza clases repetidas). */
 export function Td({ className, ...props }: ComponentProps<"td">) {
-  return <td className={cx("whitespace-nowrap px-4 py-2.5 text-slate-700", className)} {...props} />;
+  const ownWhitespace = className ? /(^|\s)whitespace-/.test(className) : false;
+  return <td className={cx(!ownWhitespace && "whitespace-nowrap", "px-4 py-2.5 text-slate-700", className)} {...props} />;
 }
 
 /** Select con etiqueta y errores. `options` en el orden en que se muestran. */

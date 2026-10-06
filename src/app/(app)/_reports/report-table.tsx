@@ -15,6 +15,8 @@ const numeric = (c: ReportColumn) => c.type === "money" || c.type === "int";
 const negative = (c: ReportColumn, v: CellValue | undefined) => c.type === "money" && typeof v === "string" && v.startsWith("-");
 
 /** Tabla de un reporte en pantalla: mismas columnas, filas y totales que el Excel y el PDF. */
+const KEEP_TOGETHER = new Set(["number", "taxId", "drawerTaxId", "code", "period", "certificate", "reference", "status"]);
+
 export function ReportTableView({ table }: { table: ReportTable }) {
   const cols = table.columns;
   const linkCol = cols.find((c) => c.type === "text")?.key;
@@ -26,8 +28,10 @@ export function ReportTableView({ table }: { table: ReportTable }) {
       else groups.push({ label: c.group ?? "", span: 1 });
     }
   }
-  const th = "whitespace-nowrap px-3 py-2 font-semibold text-slate-700";
-  const td = "whitespace-nowrap px-3 py-1.5";
+  const th = "px-3 py-2 align-bottom font-semibold text-slate-700";
+  const td = "px-3 py-1.5";
+  // Nombres, conceptos y descripciones pueden partirse en dos líneas; fechas, importes, números y CUIT no.
+  const wrap = (c: { key: string; type: string }) => (c.type === "text" && !KEEP_TOGETHER.has(c.key) ? "min-w-28 whitespace-normal" : "whitespace-nowrap");
   return (
     <Card className="mb-4">
       {table.title && <h2 className="border-b border-slate-200 px-4 py-2.5 font-semibold text-slate-900">{table.title}</h2>}
@@ -84,6 +88,7 @@ export function ReportTableView({ table }: { table: ReportTable }) {
                       key={c.key}
                       className={cx(
                         td,
+                        wrap(c),
                         numeric(c) && "text-right tabular-nums",
                         c.projected && "bg-slate-50/70 text-slate-500",
                         negative(c, v) && "text-red-700",
@@ -110,7 +115,7 @@ export function ReportTableView({ table }: { table: ReportTable }) {
                   const v = table.totals![c.key];
                   const fallback = i === 0 && !cols.some((x) => x.type === "text" && table.totals![x.key] !== undefined) ? "Total" : "";
                   return (
-                    <td key={c.key} className={cx(td, numeric(c) && "text-right tabular-nums", negative(c, v) && "text-red-700")}>
+                    <td key={c.key} className={cx(td, wrap(c), numeric(c) && "text-right tabular-nums", negative(c, v) && "text-red-700")}>
                       {v !== undefined ? cellText(c, v) : fallback}
                     </td>
                   );

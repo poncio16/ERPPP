@@ -138,13 +138,13 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
                     {r.id}
                   </Link>
                 </Td>
-                <Td className="whitespace-normal!">{formatDateTime(r.occurredAt)}</Td>
+                <Td className="whitespace-normal">{formatDateTime(r.occurredAt)}</Td>
                 <Td>{r.username ?? <span className="text-slate-400">—</span>}</Td>
-                <Td className="whitespace-normal!">{moduleLabel(r.module)}</Td>
-                <Td className="whitespace-normal!" title={r.action}>
+                <Td className="whitespace-normal">{moduleLabel(r.module)}</Td>
+                <Td className="whitespace-normal" title={r.action}>
                   {actionLabel(r.action)}
                 </Td>
-                <Td className="whitespace-normal!">{r.entityType ? `${entityLabel(r.entityType)}${r.entityId ? ` #${r.entityId}` : ""}` : "—"}</Td>
+                <Td className="whitespace-normal">{r.entityType ? `${entityLabel(r.entityType)}${r.entityId ? ` #${r.entityId}` : ""}` : "—"}</Td>
                 <Td>
                   <ResultBadge result={r.result} />
                 </Td>

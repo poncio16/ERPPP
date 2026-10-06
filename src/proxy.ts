@@ -13,8 +13,9 @@ function contentSecurityPolicy(nonce: string, isDev: boolean) {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
-    // En desarrollo el overlay de errores de Next inyecta estilos en línea.
-    `style-src 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
+    // Estilos en línea permitidos: los gráficos (Recharts) dibujan con atributos style y el overlay de
+    // errores de Next los usa en desarrollo. Un estilo no ejecuta código: los scripts siguen exigiendo el nonce.
+    "style-src 'self' 'unsafe-inline'",
     "img-src 'self' blob: data:",
     "font-src 'self'",
     "connect-src 'self'",
