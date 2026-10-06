@@ -3,11 +3,11 @@
 > Archivo generado por `npm run test:acceptance` a partir de la ejecución real de las pruebas. No se edita a mano:
 > un criterio figura en PASS solo si todas las pruebas que lo verifican se ejecutaron y pasaron (§48, K.3).
 
-- Generada: 6/10/26, 13:44:57 (hora argentina)
-- Código: hito-10-pruebas-integrales @ d310a8f (con cambios sin confirmar)
+- Generada: 6/10/26, 14:00:00 (hora argentina)
+- Código: hito-10-pruebas-integrales @ 69fe8a4
 - Entorno: Node 22.22.0, PostgreSQL 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
-- Pruebas ejecutadas: 468 (468 PASS, 0 FAIL, 0 omitidas). Navegador: ejecutado (Playwright, Chromium)
-- Criterios: 46 (46 PASS, 0 FAIL, 0 BLOQUEADO)
+- Pruebas ejecutadas: 470 (470 PASS, 0 FAIL, 0 omitidas). Navegador: ejecutado (Playwright, Chromium)
+- Criterios: 47 (47 PASS, 0 FAIL, 0 BLOQUEADO)
 
 ## Criterios de aceptación (§46)
 
@@ -58,12 +58,13 @@
 | -- | ------ | -------- | ------------------ | ------------------ | ------ |
 | AC-PROP-01 | Propiedades | Secuencias aleatorias de comprobantes, cobranzas, pagos, imputaciones y anulaciones | Ningún saldo negativo, ninguna sobreimputación, invariantes de G.14 en $0 | PROP-01 PASS | **PASS** |
 | AC-CONC-01 | Concurrencia | Operaciones simultáneas | Números de recibo distintos y consecutivos; imputaciones simultáneas sin sobreimputar; doble envío sin doble registro | COB-05 PASS, IMP-07 PASS, DB-09 PASS, COB-04 PASS, CMP-08 PASS | **PASS** |
+| AC-UI-01 | Interfaz | Pantallas principales en el navegador | Cargan sin errores de consola (incluida la política de seguridad), sin desborde horizontal y con los gráficos del dashboard dibujados | UI-01 PASS | **PASS** |
 
 ## Condición para terminar la Fase 1 (§49)
 
 | ID | Módulo | Criterio | Resultado esperado | Resultado obtenido | Estado |
 | -- | ------ | -------- | ------------------ | ------------------ | ------ |
-| AC-FIN-01 | Fase 1 | Todas las pruebas críticas en PASS | Ninguna prueba falla ni queda sin ejecutar | 468 de 468 pruebas en PASS | **PASS** |
+| AC-FIN-01 | Fase 1 | Todas las pruebas críticas en PASS | Ninguna prueba falla ni queda sin ejecutar | 470 de 470 pruebas en PASS | **PASS** |
 | AC-FIN-02 | Fase 1 | No existen errores financieros | Invariantes de G.14 en $0 en todos los escenarios | INT-GLB 7/7, PROP-01 PASS, CON-01 PASS, DAT-04 PASS | **PASS** |
 | AC-FIN-03 | Fase 1 | No existen duplicaciones | Duplicados e idempotencia controlados en servicio y base | CLI-03 PASS, CMP-02 PASS, CMP-08 PASS, COB-04 PASS, CAJ-03 PASS, DB-02 3/3, DB-05 6/6 | **PASS** |
 | AC-FIN-04 | Fase 1 | No existen sobreimputaciones | Imputado ≤ crédito y ≤ saldo del comprobante | IMP-02 PASS, IMP-03 PASS, IMP-07 PASS, DB-04 6/6, PROP-01 PASS | **PASS** |
@@ -231,6 +232,7 @@ No hay criterios en FAIL en esta ejecución.
 | INT-GLB | tests/integration/global.test.ts | 7 | 7 | 0 | 0 |
 | INT-PRV-E2E | e2e/integral.e2e.ts | 1 | 1 | 0 | 0 |
 | INT-PRV | tests/integration/payments-checks.test.ts | 1 | 1 | 0 | 0 |
+| MIG-01 | tests/integration/migrations.test.ts | 1 | 1 | 0 | 0 |
 | PAG-01 | tests/integration/payments-checks.test.ts | 1 | 1 | 0 | 0 |
 | PAG-02 | tests/integration/payments-checks.test.ts | 1 | 1 | 0 | 0 |
 | PAG-03 | tests/integration/payments-checks.test.ts | 1 | 1 | 0 | 0 |
@@ -257,3 +259,4 @@ No hay criterios en FAIL en esta ejecución.
 | TES-01 | tests/integration/consistency.test.ts | 1 | 1 | 0 | 0 |
 | TES-02 | tests/integration/consistency.test.ts | 1 | 1 | 0 | 0 |
 | TES-03 | tests/integration/consistency.test.ts | 1 | 1 | 0 | 0 |
+| UI-01 | e2e/pantallas.e2e.ts | 1 | 1 | 0 | 0 |
