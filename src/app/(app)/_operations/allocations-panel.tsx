@@ -1,12 +1,15 @@
+import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { Alert, Card, Label, PageHeader, Select, Table, Td, Th, buttonClass, cx } from "@/components/ui";
 import { formatCuit } from "@/lib/cuit";
 import { formatDate, todayIso } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { allocationParty, availableCredits, openDebits, pendingAllocationParties } from "@/modules/allocations/service";
+import { accountOptions } from "@/modules/treasury/service";
 import { requirePagePermission } from "@/server/auth/session";
 import { db } from "@/server/db/client";
 import { AllocateCreditForm } from "./forms";
+import { RefundForm } from "./refund-forms";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -30,12 +33,21 @@ export async function AllocationsPanelPage({ searchParams }: { searchParams: Sea
   const party = Number.isSafeInteger(partyId) && partyId > 0 ? await allocationParty(db, ctx, side.direction, partyId) : null;
   const [credits, debits] = party ? await Promise.all([availableCredits(db, side.direction, party.id), openDebits(db, side.direction, party.id)]) : [[], []];
   const today = todayIso();
+  const canRefund = session.permissions.has("refunds.create");
+  const accounts = canRefund && credits.length ? await accountOptions(db) : [];
+  const cashBoxes = accounts.filter((a) => a.value.startsWith("CASH:")).map((a) => ({ value: a.value.slice(5), label: a.label }));
+  const bankAccounts = accounts.filter((a) => a.value.startsWith("BANK:")).map((a) => ({ value: a.value.slice(5), label: a.label }));
 
   return (
     <>
       <PageHeader
         title="Imputaciones"
-        description="Aplicá saldos a favor, anticipos y notas de crédito contra los comprobantes pendientes del mismo tercero. Cada imputación se puede desimputar con motivo desde el comprobante o la operación."
+        description="Aplicá saldos a favor, anticipos y notas de crédito contra los comprobantes pendientes del mismo tercero, o devolvelos en dinero. Cada imputación se puede desimputar con motivo desde el comprobante o la operación."
+        actions={
+          <Link href="/devoluciones" className={buttonClass("secondary")}>
+            Devoluciones registradas
+          </Link>
+        }
       />
       <nav className="mb-4 flex border-b border-slate-200">
         {(Object.keys(SIDES) as (keyof typeof SIDES)[]).map((k) => (
@@ -116,6 +128,19 @@ export async function AllocationsPanelPage({ searchParams }: { searchParams: Sea
                       {formatDate(c.date)} · Total {formatMoney(c.total)}
                     </span>
                   </div>
+                  {canRefund && (
+                    <div className="mb-3">
+                      <RefundForm
+                        source={{ kind: c.kind, id: c.id }}
+                        available={c.available}
+                        side={side.direction === "ISSUED" ? "AR" : "AP"}
+                        idempotencyKey={randomUUID()}
+                        today={today}
+                        cashBoxes={cashBoxes}
+                        bankAccounts={bankAccounts}
+                      />
+                    </div>
+                  )}
                   {canAllocate ? (
                     <AllocateCreditForm source={{ kind: c.kind, id: c.id }} available={c.available} openDebits={debits} today={today} />
                   ) : (

@@ -8,7 +8,7 @@ import { todayIso } from "@/lib/format";
 import { assertPermission } from "@/server/authorization";
 import type { ServiceContext } from "@/server/context";
 import type { Db, DbOrTx, Tx } from "@/server/db/drizzle";
-import { allocations, collections, documents, documentTypes, supplierPayments, type Direction } from "@/server/db/schema";
+import { allocations, collections, documents, documentTypes, refunds, supplierPayments, type Direction } from "@/server/db/schema";
 import { statusForBalance, sumAmounts } from "./plan";
 
 /**
@@ -275,6 +275,12 @@ export async function allocateCredit(db: Db, ctx: ServiceContext, input: { sourc
 export async function reverseAllocation(db: Db, ctx: ServiceContext, input: { id: number; reason: string }) {
   assertPermission(ctx, "allocations.reverse");
   return db.transaction(async (tx) => {
+    const [refund] = await tx
+      .select({ id: refunds.id })
+      .from(refunds)
+      .innerJoin(allocations, eq(allocations.targetDocumentId, refunds.documentId))
+      .where(and(eq(allocations.id, input.id), eq(refunds.status, "ACTIVE")));
+    if (refund) throw new DomainError("Esta imputación es parte de una devolución de saldo a favor: para deshacerla, anule la devolución.");
     const a = await reverseAllocationInTx(tx, ctx, input.id, input.reason);
     await recordAudit(tx, ctx, {
       module: "allocations",

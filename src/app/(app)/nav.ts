@@ -41,11 +41,13 @@ export const NAV: NavSection[] = [
       { href: "/cobranzas", label: "Cobranzas", permission: "collections.read" },
       { href: "/pagos", label: "Pagos a proveedores", permission: "payments.read" },
       { href: "/imputaciones", label: "Imputaciones", permission: "accounts.read" },
+      { href: "/devoluciones", label: "Devoluciones", permission: "treasury.read" },
     ],
   },
   {
     title: "Tesorería",
     items: [
+      { href: "/tesoreria", label: "Posición consolidada", permission: "treasury.read" },
       { href: "/caja", label: "Caja", permission: "cash.read" },
       { href: "/bancos", label: "Bancos", permission: "banks.read" },
       { href: "/cheques", label: "Cheques", permission: "checks.read" },
@@ -58,6 +60,7 @@ export const NAV: NavSection[] = [
       { href: "/admin/usuarios", label: "Usuarios", permission: "users.manage" },
       { href: "/admin/roles", label: "Roles y permisos", permission: "users.manage" },
       { href: "/admin/sesiones", label: "Sesiones activas", permission: "users.manage" },
+      { href: "/admin/consistencia", label: "Verificación de consistencia", permission: "consistency.run" },
     ],
   },
 ];

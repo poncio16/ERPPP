@@ -759,6 +759,7 @@ export interface LedgerRow {
   paymentId: number | null;
   receivedCheckId: number | null;
   issuedCheckId: number | null;
+  refundId: number | null;
   reversalOfId: number | null;
   reversedById: number | null;
   username: string | null;
@@ -798,12 +799,13 @@ export async function accountLedger(db: DbOrTx, ctx: ServiceContext, ref: Accoun
     payment_id: number | null;
     received_check_id: number | null;
     issued_check_id: number | null;
+    refund_id: number | null;
     reversal_of_id: number | null;
     reversed_by: number | null;
     username: string | null;
   }>(sql`
     SELECT m.id, m.movement_date::text, m.value_date::text, m.direction, m.amount::text, c.name AS concept, m.description, m.reference,
-           m.origin_type, m.account_transfer_id, m.cash_closure_id, cl.collection_id, pl.payment_id, ce.received_check_id, ce.issued_check_id, m.reversal_of_id,
+           m.origin_type, m.account_transfer_id, m.cash_closure_id, cl.collection_id, pl.payment_id, ce.received_check_id, ce.issued_check_id, m.refund_id, m.reversal_of_id,
            r.id AS reversed_by, u.username
       FROM treasury_movements m
       LEFT JOIN treasury_concepts c ON c.id = m.concept_id
@@ -841,6 +843,7 @@ export async function accountLedger(db: DbOrTx, ctx: ServiceContext, ref: Accoun
       paymentId: r.payment_id === null ? null : Number(r.payment_id),
       receivedCheckId: r.received_check_id === null ? null : Number(r.received_check_id),
       issuedCheckId: r.issued_check_id === null ? null : Number(r.issued_check_id),
+      refundId: r.refund_id === null ? null : Number(r.refund_id),
       reversalOfId: r.reversal_of_id === null ? null : Number(r.reversal_of_id),
       reversedById: r.reversed_by === null ? null : Number(r.reversed_by),
       username: r.username,

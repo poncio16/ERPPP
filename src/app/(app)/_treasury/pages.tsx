@@ -171,6 +171,7 @@ function originLink(r: LedgerRow) {
   if (r.paymentId) return `/pagos/${r.paymentId}`;
   if (r.receivedCheckId) return `/cheques/recibidos/${r.receivedCheckId}`;
   if (r.issuedCheckId) return `/cheques/emitidos/${r.issuedCheckId}`;
+  if (r.refundId) return "/devoluciones";
   return null;
 }
 
