@@ -3,26 +3,15 @@
  * Si hay migraciones pendientes sobre una base en uso, antes hace un backup PRE_MIGRATION (sección J.1).
  */
 import "dotenv/config";
-import { Client, Pool } from "pg";
+import { Pool } from "pg";
 import journal from "../../database/migrations/meta/_journal.json";
 import { createBackup } from "../../src/modules/backup/service";
 import { createDb } from "../../src/server/db/drizzle";
 import { consoleActor } from "../backup/cli-lib";
-import { runMigrations } from "./migrate-lib";
+import { appliedMigrations, runMigrations } from "./migrate-lib";
 
 /** Desde esta cantidad de migraciones aplicadas (0004) la base tiene lo necesario para el backup automático. */
 const BACKUP_READY_AT = 5;
-
-async function appliedMigrations(ownerUrl: string): Promise<number> {
-  const client = new Client({ connectionString: ownerUrl });
-  await client.connect();
-  try {
-    const { rows } = await client.query<{ n: number }>("SELECT CASE WHEN to_regclass('drizzle.__drizzle_migrations') IS NULL THEN 0 ELSE (SELECT count(*)::int FROM drizzle.__drizzle_migrations) END AS n");
-    return rows[0]?.n ?? 0;
-  } finally {
-    await client.end();
-  }
-}
 
 async function main() {
   const ownerUrl = process.env.DATABASE_OWNER_URL ?? "";
