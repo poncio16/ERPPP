@@ -1,0 +1,107 @@
+/** Nombres en castellano de los códigos que se guardan en la auditoría (los códigos quedan en inglés). */
+
+export const MODULE_LABELS: Record<string, string> = {
+  auth: "Seguridad",
+  users: "Usuarios y permisos",
+  clients: "Clientes",
+  suppliers: "Proveedores",
+  documents: "Comprobantes",
+  accounts: "Cuentas corrientes",
+  collections: "Cobranzas",
+  payments: "Pagos",
+  allocations: "Imputaciones",
+  refunds: "Devoluciones",
+  checks: "Cheques",
+  treasury: "Tesorería",
+  reports: "Reportes",
+  consistency: "Consistencia",
+  audit: "Auditoría",
+  backup: "Backup",
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  login: "Ingreso",
+  logout: "Salida",
+  lock: "Bloqueo",
+  unlock: "Desbloqueo",
+  change_password: "Cambio de contraseña",
+  reset_password: "Blanqueo de contraseña",
+  revoke_session: "Cierre de sesión",
+  set_role_permissions: "Cambio de permisos",
+  create_initial_admin: "Alta del administrador inicial",
+  create: "Alta",
+  update: "Modificación",
+  update_info: "Modificación",
+  deactivate: "Baja",
+  reactivate: "Reactivación",
+  annul: "Anulación",
+  register_issued: "Registro de comprobante emitido",
+  register_received: "Registro de comprobante recibido",
+  create_internal: "Registro interno",
+  reverse: "Desimputación",
+  deposit: "Depósito",
+  credit: "Acreditación",
+  cash: "Cobro por ventanilla",
+  reject: "Rechazo",
+  reject_received: "Rechazo",
+  reject_issued: "Rechazo",
+  present: "Presentación",
+  present_issued: "Presentación",
+  debit: "Débito",
+  debit_issued: "Débito",
+  manual_movement: "Movimiento manual",
+  cash_movement: "Movimiento de caja",
+  bank_movement: "Movimiento bancario",
+  reverse_movement: "Reversión de movimiento",
+  reverse_cash_movement: "Reversión de movimiento",
+  reverse_bank_movement: "Reversión de movimiento",
+  transfer: "Transferencia",
+  annul_transfer: "Anulación de transferencia",
+  opening: "Saldo inicial",
+  cash_close: "Arqueo y cierre",
+  plan_create: "Alta de proyectado",
+  plan_status: "Cambio de estado de proyectado",
+  create_cash_box: "Alta de caja",
+  update_cash_box: "Modificación de caja",
+  create_bank_account: "Alta de cuenta bancaria",
+  update_bank_account: "Modificación de cuenta bancaria",
+  export: "Exportación",
+  pdf: "PDF",
+  run: "Ejecución",
+  verify_chain: "Verificación de integridad",
+  verify: "Verificación",
+  restore: "Restauración",
+  prune: "Borrado por retención",
+};
+
+export const RESULT_LABELS = { SUCCESS: "Éxito", DENIED: "Denegado", ERROR: "Error" } as const;
+
+export const ENTITY_LABELS: Record<string, string> = {
+  user: "Usuario",
+  role: "Rol",
+  session: "Sesión",
+  client: "Cliente",
+  supplier: "Proveedor",
+  document: "Comprobante",
+  collection: "Cobranza",
+  payment: "Pago",
+  allocation: "Imputación",
+  refund: "Devolución",
+  received_check: "Cheque de terceros",
+  issued_check: "Cheque propio",
+  treasury_movement: "Movimiento de tesorería",
+  account_transfer: "Transferencia",
+  cash_box: "Caja",
+  bank_account: "Cuenta bancaria",
+  planned_cash_item: "Proyectado",
+  report: "Reporte",
+  backup_run: "Backup",
+};
+
+export const moduleLabel = (m: string) => MODULE_LABELS[m] ?? m;
+export const entityLabel = (e: string | null) => (e ? (ENTITY_LABELS[e] ?? e) : "");
+
+/** Las acciones se guardan como "create" o como "clients.create" (nombre de la Server Action). */
+export function actionLabel(action: string): string {
+  return ACTION_LABELS[action] ?? ACTION_LABELS[action.slice(action.lastIndexOf(".") + 1)] ?? action;
+}

@@ -1,7 +1,13 @@
+import { existsSync } from "node:fs";
 import { NextResponse, type NextRequest } from "next/server";
+import { maintenanceFilePath } from "@/modules/backup/config";
 
 const SESSION_COOKIE = process.env.NODE_ENV === "production" ? "__Host-erp_session" : "erp_session";
 const PUBLIC_PATHS = new Set(["/login"]);
+const MAINTENANCE_FILE = maintenanceFilePath();
+const MAINTENANCE_HTML = `<!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sistema en mantenimiento</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;color:#0f172a"><h1 style="font-size:1.4rem">Sistema en mantenimiento</h1>
+<p>Se está restaurando un backup de la base de datos. Vuelva a intentar en unos minutos.</p></body></html>`;
 
 function contentSecurityPolicy(nonce: string, isDev: boolean) {
   return [
@@ -26,6 +32,10 @@ function contentSecurityPolicy(nonce: string, isDev: boolean) {
  * (páginas con requireUser/requirePagePermission y acciones con executeAction).
  */
 export function proxy(request: NextRequest) {
+  // Modo mantenimiento: lo activa el script de restauración mientras reemplaza la base.
+  if (existsSync(MAINTENANCE_FILE)) {
+    return new NextResponse(MAINTENANCE_HTML, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Retry-After": "120", "Cache-Control": "no-store" } });
+  }
   if (!PUBLIC_PATHS.has(request.nextUrl.pathname) && !request.cookies.has(SESSION_COOKIE)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

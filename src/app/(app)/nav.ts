@@ -70,6 +70,8 @@ export const NAV: NavSection[] = [
       { href: "/admin/roles", label: "Roles y permisos", permission: "users.manage" },
       { href: "/admin/sesiones", label: "Sesiones activas", permission: "users.manage" },
       { href: "/admin/consistencia", label: "Verificación de consistencia", permission: "consistency.run" },
+      { href: "/admin/auditoria", label: "Auditoría", permission: "audit.read" },
+      { href: "/admin/backups", label: "Backups", permission: "backup.run" },
     ],
   },
 ];

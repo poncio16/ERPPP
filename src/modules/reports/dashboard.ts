@@ -8,6 +8,7 @@ import type { Direction } from "@/server/db/schema";
 import { balancesReport, documentsReport, settlementsReport } from "./accounts-reports";
 import { cashFlow } from "./cash-flow";
 import { firstOfMonth } from "./schemas";
+import { backupAlerts } from "@/modules/backup/service";
 
 /**
  * Dashboard (sección 33, G.15). Cada indicador sale de la misma función que el reporte que lo
@@ -107,7 +108,10 @@ export async function dashboardData(db: DbOrTx, ctx: ServiceContext, today: stri
     management = { issued: pick(issued), received: pick(received) };
   }
 
-  return { today, month, receivable, payable, evolution, treasury, flow, management };
+  // Alertas de backup, solo para quien administra los backups (J.1).
+  const backup = has("backup.run") ? await backupAlerts(db, ctx) : null;
+
+  return { today, month, receivable, payable, evolution, treasury, flow, management, backup };
 }
 
 export type DashboardData = Awaited<ReturnType<typeof dashboardData>>;

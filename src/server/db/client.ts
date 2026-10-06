@@ -9,6 +9,9 @@ function getPool(): Pool {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) throw new Error("Falta la variable de entorno DATABASE_URL");
     globalForDb.erpPool = new Pool({ connectionString, max: 10 });
+    // Una conexión inactiva cortada por el servidor (p. ej. durante una restauración) se descarta y el pool
+    // abre otra en el siguiente uso; sin este manejador el error terminaría el proceso.
+    globalForDb.erpPool.on("error", (e) => console.error("[db] conexión inactiva cerrada:", e.message));
   }
   return globalForDb.erpPool;
 }
