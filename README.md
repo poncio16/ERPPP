@@ -85,6 +85,13 @@ Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en 
   recibidos (depósito, acreditación, cobro por ventanilla, rechazo) y cheques propios (presentación,
   débito, rechazo). El rechazo de un cheque recibido genera una nota de débito interna al cliente
   (`INT_CHEQUE_RECHAZADO`, migración `0003`) y, si estaba endosado, la deuda con el proveedor.
+- **Tesorería consolidada y consistencia** (Hito 7): `/tesoreria` con cajas, bancos (contable y
+  disponible), cartera, depositados a acreditar y cheques propios pendientes; ingresos y egresos por
+  concepto en un período (las anulaciones se restan del concepto original) e ingresos/egresos proyectados
+  (permiso `treasury.plan`) para el flujo de fondos. Devoluciones de saldo a favor (D14): desde
+  `/imputaciones`, consumen el crédito con un débito interno `INT_DEVOLUCION` y mueven caja o banco; se
+  listan y anulan en `/devoluciones`. `/admin/consistencia` (permiso `consistency.run`) recalcula los
+  invariantes G.14 y muestra PASS/FAIL con los casos que no cumplen; cada ejecución queda auditada.
 
 ## Pruebas
 

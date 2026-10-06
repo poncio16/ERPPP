@@ -427,7 +427,7 @@ export async function annulDocument(db: Db, ctx: ServiceContext, input: { id: nu
     if (d.version !== input.version) throw new DomainError("Otro usuario modificó el comprobante. Recargue la página.", "CONFLICT");
     const [type] = await tx.select({ cls: documentTypes.class }).from(documentTypes).where(eq(documentTypes.id, d.documentTypeId));
     if (type?.cls === "INTERNAL_DEBIT") {
-      throw new DomainError("Los débitos internos los genera el sistema (rechazo de cheques) y no se anulan desde aquí.");
+      throw new DomainError("Los débitos internos los genera el sistema (rechazo de cheques y devoluciones) y no se anulan desde aquí.");
     }
     const [{ active } = { active: 0 }] = await tx
       .select({ active: count() })
@@ -440,49 +440,74 @@ export async function annulDocument(db: Db, ctx: ServiceContext, input: { id: nu
     if (locked && (d.issueDate <= locked || d.vatPeriod <= locked)) {
       throw new DomainError(`El comprobante pertenece a un período cerrado (hasta el ${locked.split("-").reverse().join("/")}); no se puede anular.`);
     }
-    await tx
-      .update(documents)
-      .set({
-        status: "ANNULLED",
-        balance: "0",
-        annulledAt: new Date(),
-        annulledBy: ctx.userId,
-        annulReason: input.reason,
-        updatedAt: new Date(),
-        updatedBy: ctx.userId,
-        version: sql`${documents.version} + 1`,
-      })
-      .where(eq(documents.id, d.id));
-
-    // Asiento espejo del original (la base verifica que sea exactamente el opuesto).
-    const ledger = d.direction === "ISSUED" ? customerAccountEntries : supplierAccountEntries;
-    const [orig] = await tx
-      .select()
-      .from(ledger)
-      .where(and(eq(ledger.documentId, d.id), eq(ledger.entryType, "DOCUMENT")));
-    if (!orig) throw new DomainError("No se encontró el asiento de cuenta corriente del comprobante.", "INCONSISTENT");
-    const reversal = {
-      entryDate: todayIso(),
-      entryType: "REVERSAL",
-      documentId: d.id,
-      debit: orig.credit,
-      credit: orig.debit,
-      description: `Anulación: ${orig.description}`,
-      reversalOfId: orig.id,
-      createdBy: ctx.userId,
-    };
-    if (d.direction === "ISSUED") await tx.insert(customerAccountEntries).values({ ...reversal, clientId: d.clientId! });
-    else await tx.insert(supplierAccountEntries).values({ ...reversal, supplierId: d.supplierId! });
-
-    await recordAudit(tx, ctx, {
-      module: "documents",
-      action: "annul",
-      entityType: "document",
-      entityId: d.id,
-      before: { status: d.status, balance: d.balance },
-      after: { status: "ANNULLED", balance: "0.00", reason: input.reason },
-    });
+    await markAnnulledInTx(tx, ctx, d, input.reason);
   });
+}
+
+type DocumentRow = typeof documents.$inferSelect;
+
+/** Anulación de un comprobante ya bloqueado: saldo a cero, asiento espejo y auditoría. */
+async function markAnnulledInTx(tx: Tx, ctx: ServiceContext, d: DocumentRow, reason: string) {
+  await tx
+    .update(documents)
+    .set({
+      status: "ANNULLED",
+      balance: "0",
+      annulledAt: new Date(),
+      annulledBy: ctx.userId,
+      annulReason: reason,
+      updatedAt: new Date(),
+      updatedBy: ctx.userId,
+      version: sql`${documents.version} + 1`,
+    })
+    .where(eq(documents.id, d.id));
+
+  // Asiento espejo del original (la base verifica que sea exactamente el opuesto).
+  const ledger = d.direction === "ISSUED" ? customerAccountEntries : supplierAccountEntries;
+  const [orig] = await tx
+    .select()
+    .from(ledger)
+    .where(and(eq(ledger.documentId, d.id), eq(ledger.entryType, "DOCUMENT")));
+  if (!orig) throw new DomainError("No se encontró el asiento de cuenta corriente del comprobante.", "INCONSISTENT");
+  const reversal = {
+    entryDate: todayIso(),
+    entryType: "REVERSAL",
+    documentId: d.id,
+    debit: orig.credit,
+    credit: orig.debit,
+    description: `Anulación: ${orig.description}`,
+    reversalOfId: orig.id,
+    createdBy: ctx.userId,
+  };
+  if (d.direction === "ISSUED") await tx.insert(customerAccountEntries).values({ ...reversal, clientId: d.clientId! });
+  else await tx.insert(supplierAccountEntries).values({ ...reversal, supplierId: d.supplierId! });
+
+  await recordAudit(tx, ctx, {
+    module: "documents",
+    action: "annul",
+    entityType: "document",
+    entityId: d.id,
+    before: { status: d.status, balance: d.balance },
+    after: { status: "ANNULLED", balance: "0.00", reason },
+  });
+}
+
+/**
+ * Anula un débito interno generado por el sistema (devolución anulada). Quien llama controla el
+ * permiso y debe haber desimputado antes todo lo aplicado contra el débito.
+ */
+export async function annulInternalDebitInTx(tx: Tx, ctx: ServiceContext, documentId: number, reason: string) {
+  const [d] = await tx.select().from(documents).where(eq(documents.id, documentId)).for("update");
+  if (!d) throw new DomainError("El comprobante interno no existe.", "NOT_FOUND");
+  if (d.status === "ANNULLED") throw new DomainError("El comprobante interno ya está anulado.");
+  const [type] = await tx.select({ cls: documentTypes.class }).from(documentTypes).where(eq(documentTypes.id, d.documentTypeId));
+  if (type?.cls !== "INTERNAL_DEBIT") throw new DomainError("Solo se anulan por esta vía los débitos internos.", "INCONSISTENT");
+  const [{ active } = { active: 0 }] = await tx
+    .select({ active: count() })
+    .from(allocations)
+    .where(and(eq(allocations.status, "ACTIVE"), eq(allocations.targetDocumentId, d.id)));
+  if (active > 0) throw new DomainError("El débito interno todavía tiene imputaciones activas.", "HAS_ALLOCATIONS");
+  await markAnnulledInTx(tx, ctx, d, reason);
 }
 
 /**

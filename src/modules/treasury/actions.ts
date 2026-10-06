@@ -16,6 +16,8 @@ import {
   transferDef,
   updateBankAccountDef,
   updateCashBoxDef,
+  createPlannedItemDef,
+  setPlannedItemStatusDef,
 } from "./action-defs";
 
 type State = ActionResult<unknown> | undefined;
@@ -66,4 +68,10 @@ export async function annulTransferAction(_prev: State, fd: FormData) {
 }
 export async function closeCashBoxAction(_prev: State, fd: FormData) {
   return run(closeCashBoxDef as ActionDef, fd);
+}
+export async function createPlannedItemAction(_prev: State, fd: FormData) {
+  return run(createPlannedItemDef as ActionDef, fd);
+}
+export async function setPlannedItemStatusAction(_prev: State, fd: FormData) {
+  return run(setPlannedItemStatusDef as ActionDef, fd);
 }

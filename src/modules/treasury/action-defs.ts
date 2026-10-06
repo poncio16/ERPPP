@@ -1,4 +1,6 @@
 import { defineAction } from "@/server/action";
+import { createPlannedItem, setPlannedItemStatus } from "./consolidated";
+import { PlannedItemSchema, PlannedStatusSchema } from "./planning-schemas";
 import {
   AnnulTransferSchema,
   BankAccountSchema,
@@ -106,4 +108,18 @@ export const closeCashBoxDef = defineAction({
   permission: "cash.close",
   schema: CashClosureSchema,
   handler: (db, ctx, input) => closeCashBox(db, ctx, input),
+});
+
+export const createPlannedItemDef = defineAction({
+  name: "treasury.plan_create",
+  permission: "treasury.plan",
+  schema: PlannedItemSchema,
+  handler: (db, ctx, input) => createPlannedItem(db, ctx, input),
+});
+
+export const setPlannedItemStatusDef = defineAction({
+  name: "treasury.plan_status",
+  permission: "treasury.plan",
+  schema: PlannedStatusSchema,
+  handler: (db, ctx, input) => setPlannedItemStatus(db, ctx, input),
 });
