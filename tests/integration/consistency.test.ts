@@ -9,9 +9,10 @@ import { depositCheckDef, creditCheckDef } from "@/modules/checks/action-defs";
 import { runConsistencyDef } from "@/modules/consistency/action-defs";
 import type { InvariantResult } from "@/modules/consistency/service";
 import { registerRefundDef } from "@/modules/refunds/action-defs";
+import { registerIssuedDocumentDef } from "@/modules/documents/action-defs";
 import { createPlannedItemDef, setPlannedItemStatusDef } from "@/modules/treasury/action-defs";
 import { consolidatedPosition, incomeExpenseByConcept, listPlannedItems } from "@/modules/treasury/consolidated";
-import { appPool, makeBankAccount, makeCashBox, makeClient, makeSupplier, ownerPool as dbOwnerPool, q1 } from "../db/helpers";
+import { appPool, docType, makeBankAccount, makeCashBox, makeClient, makeSupplier, nextSeq, ownerPool as dbOwnerPool, q1, tax } from "../db/helpers";
 import { testUrls, TEST_DB } from "../setup/test-env";
 import { db, lastAudit, ownerPool, pool } from "./helpers";
 import {
@@ -83,7 +84,7 @@ describe("Verificación de consistencia (G.14)", () => {
 
     const { results } = await runCheck();
     const codes = results.map((r) => r.code);
-    expect(codes).toEqual(["G14-1 clientes", "G14-1 proveedores", "G14-2", "G14-3 cobranzas", "G14-4 cobranzas", "G14-3 pagos", "G14-4 pagos", "G14-5", "G14-6", "G14-7", "G14-9"]);
+    expect(codes).toEqual(["G14-1 clientes", "G14-1 proveedores", "G14-2", "G14-3 cobranzas", "G14-4 cobranzas", "G14-3 pagos", "G14-4 pagos", "G14-5", "G14-6", "G14-7", "G14-8", "G14-9"]);
     const names = await q1<{ c: string; s: string }>("SELECT (SELECT legal_name FROM clients WHERE id = $1) AS c, (SELECT legal_name FROM suppliers WHERE id = $2) AS s", [client, supplier]);
     for (const r of results) {
       for (const s of r.samples) {
@@ -113,6 +114,40 @@ describe("Verificación de consistencia (G.14)", () => {
     } finally {
       await corrupt("UPDATE collections SET unapplied_amount = 700 WHERE id = $1", [c.id]);
     }
+  });
+
+  it("CON-04 G.14-8: una línea de IVA alterada hace que el subdiario no cierre con el comprobante", async () => {
+    const client = await makeClient();
+    const number = nextSeq();
+    const id = ok(
+      await run(await administration(), registerIssuedDocumentDef, {
+        idempotencyKey: randomUUID(),
+        documentTypeId: String(await docType("FA")),
+        pointOfSale: "8",
+        number: String(number),
+        partyId: String(client),
+        issueDate: today,
+        dueDate: addDays(today, 30),
+        concept: "PRODUCTS",
+        vatTaxId: [String(await tax("IVA_21"))],
+        vatBase: ["1.000,00"],
+        vatAmount: ["210,00"],
+      }),
+    ).id;
+    const label = `Subdiario de IVA – Factura A 00008-${String(number).padStart(8, "0")}`;
+    const g8 = async () => (await runCheck()).results.find((r) => r.code === "G14-8")!;
+    // La base de pruebas es compartida (las pruebas de tests/db escriben datos inconsistentes a propósito):
+    // se verifica el caso de este comprobante.
+    expect((await g8()).samples.join(" ")).not.toContain(label);
+    await corrupt("UPDATE document_tax_lines SET amount = 200 WHERE document_id = $1", [id]);
+    try {
+      const after = await g8();
+      expect(after.ok).toBe(false);
+      expect(after.samples).toContainEqual(expect.stringContaining(label));
+    } finally {
+      await corrupt("UPDATE document_tax_lines SET amount = 210 WHERE document_id = $1", [id]);
+    }
+    expect((await g8()).samples.join(" ")).not.toContain(label);
   });
 
   it("CON-03 solo el administrador ejecuta la verificación", async () => {

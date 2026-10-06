@@ -1,6 +1,8 @@
 import Decimal from "decimal.js";
 import { sql, type SQL } from "drizzle-orm";
+import { todayIso } from "@/lib/format";
 import { recordAudit } from "@/modules/audit/service";
+import { reportReconciliation } from "@/modules/reports/reconciliation";
 import { assertPermission } from "@/server/authorization";
 import type { ServiceContext } from "@/server/context";
 import type { Db, DbOrTx } from "@/server/db/drizzle";
@@ -8,7 +10,6 @@ import type { Db, DbOrTx } from "@/server/db/drizzle";
 /**
  * Verificación de consistencia (G.14). Cada invariante se recalcula desde las tablas de origen y
  * debe dar diferencia $0,00. Las consultas son de solo lectura; el resultado queda auditado.
- * El invariante 8 (reportes = módulos de origen) se agrega con los reportes del Hito 8.
  */
 
 export interface InvariantResult {
@@ -219,6 +220,17 @@ export async function runConsistencyCheck(db: Db, ctx: ServiceContext): Promise<
             SELECT 'Caja ' || account_name || ' en negativo: ' || ${money("balance")}, balance::text FROM negative`,
         }),
       );
+      const g8 = await reportReconciliation(tx, ctx, todayIso());
+      out.push({
+        code: "G14-8",
+        title: "Totales de reportes y módulos de origen",
+        description:
+          "Antigüedad y deuda = cuentas corrientes (total, vencido, a vencer, créditos y cada tercero); cartera y cheques propios, flujo de fondos e ingresos/egresos = posición de tesorería; subdiario de IVA = comprobantes.",
+        ok: g8.length === 0,
+        failures: g8.length,
+        difference: g8.reduce((a, r) => a.plus(new Decimal(r.diff).abs()), new Decimal(0)).toFixed(2),
+        samples: g8.slice(0, SAMPLE_LIMIT).map((r) => r.label),
+      });
       out.push(
         await check(tx, {
           code: "G14-9",

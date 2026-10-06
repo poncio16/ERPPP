@@ -55,6 +55,15 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: "Reportes",
+    items: [
+      { href: "/reportes", label: "Todos los reportes", permission: "reports.read" },
+      { href: "/reportes/clientes-antiguedad", label: "Antigüedad de saldos", permission: "reports.read" },
+      { href: "/reportes/flujo-de-fondos", label: "Flujo de fondos", permission: "reports.read" },
+      { href: "/reportes/iva-ventas", label: "Subdiario de IVA", permission: "reports.read" },
+    ],
+  },
+  {
     title: "Administración del sistema",
     items: [
       { href: "/admin/usuarios", label: "Usuarios", permission: "users.manage" },
