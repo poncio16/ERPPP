@@ -14,4 +14,6 @@ export const testUrls = () => ({
   admin: process.env.TEST_ADMIN_URL ?? process.env.DATABASE_ADMIN_URL ?? "",
   owner: withDb(process.env.DATABASE_OWNER_URL, TEST_DB),
   app: withDb(process.env.DATABASE_URL, TEST_DB),
+  /** Rol erp_backup (pg_dump); lo usan las pruebas de backup. */
+  backup: withDb(process.env.DATABASE_BACKUP_URL, TEST_DB),
 });

@@ -3,6 +3,8 @@
  * Cada módulo nuevo con acciones debe agregarse aquí (la prueba de permisos recorre este registro).
  */
 import "@/modules/allocations/action-defs";
+import "@/modules/audit/action-defs";
+import "@/modules/backup/action-defs";
 import "@/modules/checks/action-defs";
 import "@/modules/collections/action-defs";
 import "@/modules/consistency/action-defs";

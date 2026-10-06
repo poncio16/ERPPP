@@ -106,6 +106,21 @@ Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en 
   el dashboard (permiso `dashboard.read`) con indicadores calculados por las mismas funciones de los
   reportes que enlazan y gráficos de evolución y de flujo con Recharts. La verificación de consistencia
   suma el invariante G.14-8 (totales de reportes = módulos de origen).
+- **Auditoría y backups** (Hito 9): `/admin/auditoria` (permiso `audit.read`) con filtros por fecha,
+  usuario, módulo, acción, resultado, registro y texto, detalle de cada registro con los valores
+  anteriores y nuevos campo por campo, y "Verificar integridad", que recorre la cadena de hashes, señala el
+  primer registro alterado y compara el último hash guardado con cada backup (detecta una reescritura de la
+  cadena). `/admin/backups` (permiso `backup.run`) lista los backups con fecha, tamaño, SHA-256, versiones,
+  estado, copias local y externa y verificación, y permite un backup manual. Backups con `pg_dump` (rol
+  `erp_backup`) tomados en la misma instantánea que sus totales de control, copia externa cifrada con age,
+  retención 7/4/12, verificación (`npm run db:backup:verify`) que restaura en `erp_verify` y compara totales
+  e invariantes, y restauración por consola (`npm run db:restore`) con modo mantenimiento, backup previo,
+  verificación antes de intercambiar las bases y la base anterior conservada. `npm run db:migrate` hace un
+  backup previo si hay migraciones pendientes. El dashboard avisa al administrador si el último backup
+  falló, si no hay uno reciente o si no hay una verificación en PASS en 8 días. Procedimientos en
+  `docs/runbooks/backup-y-restauracion.md`; cron de ejemplo en `deploy/cron/erp-backup`. Migración `0004`
+  (copia externa y retención en `backup_runs`, datos de un backup terminado inmodificables, lectura de la
+  tabla de migraciones para `erp_backup`).
 
 ## Pruebas
 

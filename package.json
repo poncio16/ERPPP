@@ -14,6 +14,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db/migrate.ts",
     "db:seed": "tsx scripts/db/seed.ts",
+    "db:backup": "tsx scripts/backup/backup.ts",
+    "db:backup:verify": "tsx scripts/backup/verify.ts",
+    "db:restore": "tsx scripts/backup/restore.ts",
     "admin:create": "tsx scripts/create-admin.ts",
     "db:reset-dev": "bash scripts/db/reset-dev.sh"
   },

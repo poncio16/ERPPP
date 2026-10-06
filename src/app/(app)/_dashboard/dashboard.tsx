@@ -84,9 +84,18 @@ function PartySection({ side, data }: { side: "AR" | "AP"; data: PartySide }) {
 }
 
 export function Dashboard({ data }: { data: DashboardData }) {
-  const { receivable, payable, treasury, flow, management, evolution } = data;
+  const { receivable, payable, treasury, flow, management, evolution, backup } = data;
   return (
     <div className="space-y-4">
+      {backup && backup.length > 0 && (
+        <Alert tone="warning">
+          <span className="font-semibold">Backups: </span>
+          {backup.join(" ")}{" "}
+          <Link className="underline" href="/admin/backups">
+            Ver backups
+          </Link>
+        </Alert>
+      )}
       {(receivable || payable) && (
         <div className="grid gap-4 xl:grid-cols-2">
           {receivable && <PartySection side="AR" data={receivable} />}

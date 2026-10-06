@@ -56,11 +56,19 @@ export const backupRuns = pgTable(
     verifiedAt: tstz(),
     verifyStatus: text(),
     verifyDetail: jsonb(),
+    /** Copia cifrada fuera del servidor (D16). */
+    offsiteFile: text(),
+    offsiteStatus: text(),
+    offsiteError: text(),
+    /** Fecha en que la política de retención borró el archivo; el registro se conserva. */
+    prunedAt: tstz(),
     createdBy: ref(),
   },
   (t) => [
     check("ck_backup_kind", sql`${t.kind} IN ('AUTO','MANUAL','PRE_RESTORE','PRE_MIGRATION')`),
     check("ck_backup_status", sql`${t.status} IN ('RUNNING','OK','FAILED')`),
     check("ck_backup_verify", sql`${t.verifyStatus} IS NULL OR ${t.verifyStatus} IN ('PASS','FAIL')`),
+    check("ck_backup_offsite", sql`${t.offsiteStatus} IS NULL OR ${t.offsiteStatus} IN ('OK','FAILED','SKIPPED')`),
+    index("ix_backup_runs_file").on(t.fileName),
   ],
 );

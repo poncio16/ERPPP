@@ -15,6 +15,7 @@ export default async function setup() {
     await bootstrapDatabase(admin, TEST_DB, {
       ownerPassword: decodeURIComponent(new URL(urls.owner).password),
       appPassword: decodeURIComponent(new URL(urls.app).password),
+      backupPassword: decodeURIComponent(new URL(urls.backup).password),
     });
   } finally {
     await admin.end();
