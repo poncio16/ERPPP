@@ -74,6 +74,17 @@ Para recrear la base de desarrollo desde cero: `npm run db:reset-dev` (nunca en 
   (`cash_allow_negative`) y un banco en negativo pide confirmación. Bancos muestra saldo contable y saldo
   disponible (descontando cheques propios pendientes de débito). Una caja cerrada no acepta movimientos
   con fecha igual o anterior al cierre, también controlado por la base (migración `0002`).
+- **Cobranzas, pagos, imputaciones y cheques** (Hito 6): cobranzas a clientes y pagos a proveedores con
+  varios medios (efectivo, transferencia, cheque recibido, cheque propio, endoso de cheque en cartera y
+  retenciones), imputación a comprobantes pendientes con propuesta por vencimiento, y lo no imputado como
+  saldo a favor o anticipo. Cada operación genera un recibo interno o una orden de pago interna numerados,
+  imprimibles y en PDF (`/api/recibos/{id}/pdf`, `/api/ordenes-de-pago/{id}/pdf`), siempre con la
+  leyenda "Documento interno – no válido como comprobante fiscal". Panel `/imputaciones` para aplicar
+  después saldos a favor, anticipos y notas de crédito; desimputación con motivo. Anulación de cobranzas
+  y pagos con motivo (revierte imputaciones, tesorería, cheques y cuenta corriente). Cheques: cartera de
+  recibidos (depósito, acreditación, cobro por ventanilla, rechazo) y cheques propios (presentación,
+  débito, rechazo). El rechazo de un cheque recibido genera una nota de débito interna al cliente
+  (`INT_CHEQUE_RECHAZADO`, migración `0003`) y, si estaba endosado, la deuda con el proveedor.
 
 ## Pruebas
 

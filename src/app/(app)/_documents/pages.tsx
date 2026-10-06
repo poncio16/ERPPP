@@ -6,6 +6,7 @@ import { formatCuit } from "@/lib/cuit";
 import { DomainError } from "@/lib/errors";
 import { formatDate, formatDateTime, formatPeriod } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
+import { CREDIT_DOCUMENT_CLASSES, DEBIT_CLASSES, allocationsOf, openDebits } from "@/modules/allocations/service";
 import { DocumentListSchema, STATUS_FILTERS } from "@/modules/documents/schemas";
 import { documentHistory, getDocument, listDocuments, partyOptions } from "@/modules/documents/service";
 import { CLASS_LABELS, CONCEPT_LABELS, displayStatus } from "@/modules/documents/status";
@@ -17,6 +18,8 @@ import type { Direction } from "@/server/db/schema";
 import { DOCUMENT_UI } from "./config";
 import { AnnulDocumentForm, DocumentInfoForm } from "./document-actions";
 import { DocumentForm, type DocumentFormInitial } from "./document-form";
+import { AllocateCreditForm } from "../_operations/forms";
+import { AllocationsTable } from "../_operations/pages";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -308,6 +311,16 @@ export async function DocumentDetailPage({ direction, id, searchParams }: { dire
   const partyId = d.clientId ?? d.supplierId;
   const annulled = d.status === "ANNULLED";
   const number = formatDocumentNumber(d.pointOfSale, d.number);
+  const isDebit = (DEBIT_CLASSES as readonly string[]).includes(d.documentClass);
+  const isCredit = (CREDIT_DOCUMENT_CLASSES as readonly string[]).includes(d.documentClass);
+  const hasBalance = !annulled && Number(d.balance) > 0;
+  const settle = direction === "ISSUED" ? { permission: "collections.create", path: "/cobranzas/nueva", label: "Registrar cobranza" } : { permission: "payments.create", path: "/pagos/nuevo", label: "Registrar pago" };
+  const canSettle = isDebit && hasBalance && session.permissions.has(settle.permission as "collections.create" | "payments.create");
+  const canAllocateCredit = isCredit && hasBalance && session.permissions.has("allocations.create");
+  const [allocationRows, debitOptions] = await Promise.all([
+    isDebit || isCredit ? allocationsOf(db, { documentId: d.id }) : Promise.resolve([]),
+    canAllocateCredit && partyId ? openDebits(db, direction, partyId) : Promise.resolve([]),
+  ]);
 
   return (
     <>
@@ -444,6 +457,13 @@ export async function DocumentDetailPage({ direction, id, searchParams }: { dire
             </Card>
           )}
 
+          {(isDebit || isCredit) && (
+            <Card>
+              <h2 className="px-5 pt-5 font-medium text-slate-900">Imputaciones</h2>
+              <AllocationsTable rows={allocationRows} canReverse={session.permissions.has("allocations.reverse")} documentsPath={ui.basePath} show={isDebit ? "source" : "target"} />
+            </Card>
+          )}
+
           <Card className="p-5">
             <h2 className="font-medium text-slate-900">Historial</h2>
             <ol className="mt-3 space-y-3 text-sm">
@@ -488,6 +508,19 @@ export async function DocumentDetailPage({ direction, id, searchParams }: { dire
               <Row label={d.documentClass === "CREDIT_NOTE" ? "Crédito disponible" : "Saldo"} value={formatMoney(d.balance)} strong />
             </dl>
           </Card>
+          {canSettle && (
+            <Card className="p-5">
+              <LinkButton href={`${settle.path}?tercero=${partyId}&comprobante=${d.id}`} className="w-full justify-center">
+                {settle.label}
+              </LinkButton>
+            </Card>
+          )}
+          {canAllocateCredit && (
+            <Card className="p-5">
+              <h2 className="mb-3 font-medium text-slate-900">Imputar crédito</h2>
+              <AllocateCreditForm source={{ kind: "CREDIT_DOCUMENT", id: d.id }} available={d.balance} openDebits={debitOptions} today={today} />
+            </Card>
+          )}
           {!annulled && session.permissions.has("documents.edit") && (
             <Card className="p-5">
               <h2 className="mb-3 font-medium text-slate-900">Corregir datos</h2>
@@ -505,7 +538,7 @@ export async function DocumentDetailPage({ direction, id, searchParams }: { dire
               </p>
             </Card>
           )}
-          {!annulled && session.permissions.has("documents.annul") && (
+          {!annulled && d.documentClass !== "INTERNAL_DEBIT" && session.permissions.has("documents.annul") && (
             <Card className="p-5">
               <h2 className="mb-3 font-medium text-slate-900">Anular registro</h2>
               <AnnulDocumentForm id={d.id} version={d.version} />

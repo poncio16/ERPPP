@@ -22,6 +22,13 @@
       "when": 1791243279784,
       "tag": "0002_cash_closure_lock",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791244668729,
+      "tag": "0003_check_rejection_documents",
+      "breakpoints": true
     }
   ]
 }

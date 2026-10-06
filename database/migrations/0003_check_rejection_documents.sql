@@ -1,0 +1,6 @@
+ALTER TABLE "check_events" ADD COLUMN "debit_document_id" bigint;--> statement-breakpoint
+ALTER TABLE "check_events" ADD COLUMN "supplier_debit_document_id" bigint;--> statement-breakpoint
+ALTER TABLE "check_events" ADD CONSTRAINT "check_events_debit_document_id_documents_id_fk" FOREIGN KEY ("debit_document_id") REFERENCES "public"."documents"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "check_events" ADD CONSTRAINT "check_events_supplier_debit_document_id_documents_id_fk" FOREIGN KEY ("supplier_debit_document_id") REFERENCES "public"."documents"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "ux_check_events_debit_document" ON "check_events" USING btree ("debit_document_id") WHERE "check_events"."debit_document_id" IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "ux_check_events_supplier_debit_document" ON "check_events" USING btree ("supplier_debit_document_id") WHERE "check_events"."supplier_debit_document_id" IS NOT NULL;

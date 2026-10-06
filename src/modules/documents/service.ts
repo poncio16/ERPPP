@@ -6,6 +6,7 @@ import { computeDocumentTotals, formatDocumentNumber } from "@/modules/tax/calc"
 import { checkLetterVatCondition, requiresJurisdiction, taxesValidAt, vatTolerance } from "@/modules/tax/service";
 import { DomainError, ValidationError } from "@/lib/errors";
 import { pgError } from "@/lib/pg-error";
+import { nextSequenceNumber } from "@/modules/numbering/service";
 import { todayIso } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { assertPermission } from "@/server/authorization";
@@ -424,6 +425,10 @@ export async function annulDocument(db: Db, ctx: ServiceContext, input: { id: nu
     if (!d) throw new DomainError("El comprobante no existe.", "NOT_FOUND");
     if (d.status === "ANNULLED") throw new DomainError("El comprobante ya está anulado.");
     if (d.version !== input.version) throw new DomainError("Otro usuario modificó el comprobante. Recargue la página.", "CONFLICT");
+    const [type] = await tx.select({ cls: documentTypes.class }).from(documentTypes).where(eq(documentTypes.id, d.documentTypeId));
+    if (type?.cls === "INTERNAL_DEBIT") {
+      throw new DomainError("Los débitos internos los genera el sistema (rechazo de cheques) y no se anulan desde aquí.");
+    }
     const [{ active } = { active: 0 }] = await tx
       .select({ active: count() })
       .from(allocations)
@@ -478,6 +483,69 @@ export async function annulDocument(db: Db, ctx: ServiceContext, input: { id: nu
       after: { status: "ANNULLED", balance: "0.00", reason: input.reason },
     });
   });
+}
+
+/**
+ * Débito interno no fiscal (G.10, D6): reconstruye una deuda por un cheque rechazado. Punto de
+ * venta 0 y número de la secuencia interna; impacta en la cuenta corriente como cualquier débito.
+ * Se llama dentro de la transacción de la operación que lo origina.
+ */
+export async function registerInternalDebitInTx(
+  tx: Tx,
+  ctx: ServiceContext,
+  input: { direction: Direction; partyId: number; typeCode: "INT_CHEQUE_RECHAZADO" | "INT_DEVOLUCION"; date: string; amount: string; reason: string },
+) {
+  const [type] = await tx.select().from(documentTypes).where(eq(documentTypes.code, input.typeCode));
+  if (!type) throw new DomainError(`Falta el tipo de comprobante interno ${input.typeCode}.`, "CONFIG");
+  const party = await loadParty(tx, input.direction, input.partyId);
+  if (!party) throw new DomainError("El tercero no existe.", "NOT_FOUND");
+  const locked = await lockedUntil(tx);
+  if (locked && input.date <= locked) {
+    throw new ValidationError({ date: [`El período está cerrado hasta el ${locked.split("-").reverse().join("/")}: use una fecha posterior.`] });
+  }
+  const number = Number(await nextSequenceNumber(tx, "INTERNAL_DOC"));
+  const [doc] = await tx
+    .insert(documents)
+    .values({
+      direction: input.direction,
+      documentTypeId: type.id,
+      pointOfSale: 0,
+      number,
+      clientId: input.direction === "ISSUED" ? party.id : null,
+      supplierId: input.direction === "RECEIVED" ? party.id : null,
+      partyName: party.legalName,
+      partyTaxId: party.taxId,
+      partyVatConditionId: party.vatConditionId,
+      issueDate: input.date,
+      dueDate: input.date,
+      vatPeriod: `${input.date.slice(0, 7)}-01`,
+      netUntaxed: input.amount,
+      total: input.amount,
+      balance: input.amount,
+      status: "OPEN",
+      reason: input.reason,
+      createdBy: ctx.userId,
+    })
+    .returning({ id: documents.id });
+  const entry = {
+    entryDate: input.date,
+    entryType: "DOCUMENT",
+    documentId: doc!.id,
+    debit: input.amount,
+    credit: "0",
+    description: `${type.name} ${formatDocumentNumber(0, number)}: ${input.reason}`,
+    createdBy: ctx.userId,
+  };
+  if (input.direction === "ISSUED") await tx.insert(customerAccountEntries).values({ ...entry, clientId: party.id });
+  else await tx.insert(supplierAccountEntries).values({ ...entry, supplierId: party.id });
+  await recordAudit(tx, ctx, {
+    module: "documents",
+    action: "create_internal",
+    entityType: "document",
+    entityId: doc!.id,
+    after: { direction: input.direction, type: type.code, number: formatDocumentNumber(0, number), party: party.legalName, date: input.date, total: input.amount, reason: input.reason },
+  });
+  return { id: doc!.id, label: `${type.name} ${formatDocumentNumber(0, number)}` };
 }
 
 /**

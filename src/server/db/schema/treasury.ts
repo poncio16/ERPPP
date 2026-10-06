@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { auditColumns, id, money, ref, tstz, version } from "./_common";
 import { banks, treasuryConcepts } from "./config";
+import { documents } from "./documents";
 import { clients, suppliers } from "./parties";
 
 export const cashBoxes = pgTable("cash_boxes", {
@@ -156,12 +157,20 @@ export const checkEvents = pgTable(
     toStatus: text().notNull(),
     eventDate: date().notNull(),
     notes: text(),
+    /** Rechazo: débito interno que reconstruye la deuda del cliente (cheque recibido) o con el proveedor (cheque propio). */
+    debitDocumentId: ref().references(() => documents.id),
+    /** Rechazo de un cheque endosado: débito interno en la cuenta del proveedor que lo recibió. */
+    supplierDebitDocumentId: ref().references(() => documents.id),
     createdAt: tstz().notNull().defaultNow(),
     createdBy: ref(),
   },
   (t) => [
     index("ix_check_events_received").on(t.receivedCheckId),
     index("ix_check_events_issued").on(t.issuedCheckId),
+    uniqueIndex("ux_check_events_debit_document").on(t.debitDocumentId).where(sql`${t.debitDocumentId} IS NOT NULL`),
+    uniqueIndex("ux_check_events_supplier_debit_document")
+      .on(t.supplierDebitDocumentId)
+      .where(sql`${t.supplierDebitDocumentId} IS NOT NULL`),
     check(
       "ck_check_events_kind",
       sql`(${t.checkKind} = 'RECEIVED' AND ${t.receivedCheckId} IS NOT NULL AND ${t.issuedCheckId} IS NULL)

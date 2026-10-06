@@ -169,6 +169,8 @@ function originLink(r: LedgerRow) {
   if (r.transferId) return "/transferencias";
   if (r.collectionId) return `/cobranzas/${r.collectionId}`;
   if (r.paymentId) return `/pagos/${r.paymentId}`;
+  if (r.receivedCheckId) return `/cheques/recibidos/${r.receivedCheckId}`;
+  if (r.issuedCheckId) return `/cheques/emitidos/${r.issuedCheckId}`;
   return null;
 }
 

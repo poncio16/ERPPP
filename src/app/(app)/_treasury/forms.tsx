@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Alert, Field, Label, Select, SelectField, TextareaField, buttonClass } from "@/components/ui";
 import { ActionForm, useActionForm } from "@/components/ui/action-form";
+import { FormError, Warnings, fieldErrorsOf, useResetOnSuccess } from "@/components/ui/form-feedback";
 import { SubmitButton } from "@/components/ui/submit-button";
-import type { ActionResult } from "@/server/action";
 import {
   annulTransferAction,
   bankMovementAction,
@@ -21,44 +21,8 @@ import {
 } from "@/modules/treasury/actions";
 
 type Kind = "CASH" | "BANK";
-type State = ActionResult<unknown> | undefined;
 
-/** Vacía el formulario después de una operación exitosa (la clave de idempotencia nueva llega del servidor). */
-function useResetOnSuccess(state: State) {
-  const ref = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (state?.ok) ref.current?.reset();
-  }, [state]);
-  return ref;
-}
-
-function FormError({ state }: { state: State }) {
-  if (!state || state.ok) return null;
-  const fe = state.fieldErrors;
-  const hasFieldErrors = fe && Object.keys(fe).some((k) => k !== "_warnings");
-  if (fe?._warnings) return null;
-  return <Alert tone="error">{hasFieldErrors ? "Revise los datos marcados." : state.error}</Alert>;
-}
-
-function Warnings({ state, label }: { state: State; label: string }) {
-  const warnings = state && !state.ok ? state.fieldErrors?._warnings : undefined;
-  if (!warnings?.length) return null;
-  return (
-    <Alert tone="warning">
-      <ul className="list-disc pl-5">
-        {warnings.map((w) => (
-          <li key={w}>{w}</li>
-        ))}
-      </ul>
-      <label className="mt-2 flex items-center gap-2 font-medium">
-        <input type="checkbox" name="confirmWarnings" value="1" className="h-4 w-4" required />
-        {label}
-      </label>
-    </Alert>
-  );
-}
-
-const fe = (state: State) => (state && !state.ok ? state.fieldErrors : undefined);
+const fe = fieldErrorsOf;
 
 // ───────────────────────────── Alta y edición de cuentas ─────────────────────────────
 

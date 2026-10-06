@@ -65,7 +65,7 @@ export async function accountBalance(db: DbOrTx, ref: AccountRef, upTo?: string)
   return new Decimal(row?.balance ?? 0);
 }
 
-async function lastClosureDate(db: DbOrTx, cashBoxId: number): Promise<string | null> {
+export async function lastClosureDate(db: DbOrTx, cashBoxId: number): Promise<string | null> {
   const [row] = await db
     .select({ date: cashClosures.closureDate })
     .from(cashClosures)
@@ -183,7 +183,7 @@ export async function recordMovement(tx: Tx, ctx: ServiceContext, m: MovementInp
 }
 
 /** Bloquea las cuentas en un orden fijo (caja antes que banco, luego por id) para evitar interbloqueos. */
-async function lockAccounts(tx: Tx, refs: AccountRef[]) {
+export async function lockAccounts(tx: Tx, refs: AccountRef[]) {
   const sorted = [...refs].sort((a, b) => (a.kind === b.kind ? a.id - b.id : a.kind === "CASH" ? -1 : 1));
   const out: TreasuryAccount[] = [];
   for (const r of sorted) out.push(await loadAccount(tx, r, true));
@@ -757,6 +757,8 @@ export interface LedgerRow {
   closureId: number | null;
   collectionId: number | null;
   paymentId: number | null;
+  receivedCheckId: number | null;
+  issuedCheckId: number | null;
   reversalOfId: number | null;
   reversedById: number | null;
   username: string | null;
@@ -794,17 +796,20 @@ export async function accountLedger(db: DbOrTx, ctx: ServiceContext, ref: Accoun
     cash_closure_id: number | null;
     collection_id: number | null;
     payment_id: number | null;
+    received_check_id: number | null;
+    issued_check_id: number | null;
     reversal_of_id: number | null;
     reversed_by: number | null;
     username: string | null;
   }>(sql`
     SELECT m.id, m.movement_date::text, m.value_date::text, m.direction, m.amount::text, c.name AS concept, m.description, m.reference,
-           m.origin_type, m.account_transfer_id, m.cash_closure_id, cl.collection_id, pl.payment_id, m.reversal_of_id,
+           m.origin_type, m.account_transfer_id, m.cash_closure_id, cl.collection_id, pl.payment_id, ce.received_check_id, ce.issued_check_id, m.reversal_of_id,
            r.id AS reversed_by, u.username
       FROM treasury_movements m
       LEFT JOIN treasury_concepts c ON c.id = m.concept_id
       LEFT JOIN collection_lines cl ON cl.id = m.collection_line_id
       LEFT JOIN payment_lines pl ON pl.id = m.payment_line_id
+      LEFT JOIN check_events ce ON ce.id = m.check_event_id
       LEFT JOIN treasury_movements r ON r.reversal_of_id = m.id
       LEFT JOIN users u ON u.id = m.created_by
      WHERE m.${col} = ${ref.id} AND m.movement_date BETWEEN ${from} AND ${to}
@@ -834,6 +839,8 @@ export async function accountLedger(db: DbOrTx, ctx: ServiceContext, ref: Accoun
       closureId: r.cash_closure_id === null ? null : Number(r.cash_closure_id),
       collectionId: r.collection_id === null ? null : Number(r.collection_id),
       paymentId: r.payment_id === null ? null : Number(r.payment_id),
+      receivedCheckId: r.received_check_id === null ? null : Number(r.received_check_id),
+      issuedCheckId: r.issued_check_id === null ? null : Number(r.issued_check_id),
       reversalOfId: r.reversal_of_id === null ? null : Number(r.reversal_of_id),
       reversedById: r.reversed_by === null ? null : Number(r.reversed_by),
       username: r.username,
