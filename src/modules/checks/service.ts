@@ -655,12 +655,12 @@ export async function getReceivedCheck(db: DbOrTx, ctx: ServiceContext, id: numb
     .where(eq(receivedChecks.id, id));
   if (!c) return null;
   const [collection] = await db
-    .select({ id: collections.id, date: collections.collectionDate, status: collections.status, receipt: sql<string | null>`(SELECT number FROM receipts r WHERE r.collection_id = ${collections.id})` })
+    .select({ id: collections.id, date: collections.collectionDate, status: collections.status, receipt: sql<string | null>`(SELECT number FROM receipts r WHERE r.collection_id = "collections"."id")` })
     .from(collectionLines)
     .innerJoin(collections, eq(collections.id, collectionLines.collectionId))
     .where(eq(collectionLines.receivedCheckId, id));
   const endorsements = await db
-    .select({ paymentId: supplierPayments.id, supplierName: suppliers.legalName, status: supplierPayments.status, order: sql<string | null>`(SELECT number FROM payment_orders o WHERE o.payment_id = ${supplierPayments.id})` })
+    .select({ paymentId: supplierPayments.id, supplierName: suppliers.legalName, status: supplierPayments.status, order: sql<string | null>`(SELECT number FROM payment_orders o WHERE o.payment_id = "supplier_payments"."id")` })
     .from(paymentLines)
     .innerJoin(supplierPayments, eq(supplierPayments.id, paymentLines.paymentId))
     .innerJoin(suppliers, eq(suppliers.id, supplierPayments.supplierId))
@@ -679,7 +679,7 @@ export async function getIssuedCheck(db: DbOrTx, ctx: ServiceContext, id: number
     .where(eq(issuedChecks.id, id));
   if (!c) return null;
   const [payment] = await db
-    .select({ id: supplierPayments.id, status: supplierPayments.status, order: sql<string | null>`(SELECT number FROM payment_orders o WHERE o.payment_id = ${supplierPayments.id})` })
+    .select({ id: supplierPayments.id, status: supplierPayments.status, order: sql<string | null>`(SELECT number FROM payment_orders o WHERE o.payment_id = "supplier_payments"."id")` })
     .from(paymentLines)
     .innerJoin(supplierPayments, eq(supplierPayments.id, paymentLines.paymentId))
     .where(eq(paymentLines.issuedCheckId, id));

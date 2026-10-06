@@ -341,12 +341,12 @@ export async function availableCredits(db: DbOrTx, direction: Direction, partyId
   const ops =
     direction === "ISSUED"
       ? await db
-          .select({ id: collections.id, date: collections.collectionDate, total: collections.totalAmount, available: collections.unappliedAmount, number: sql<string | null>`(SELECT number FROM receipts r WHERE r.collection_id = ${collections.id})` })
+          .select({ id: collections.id, date: collections.collectionDate, total: collections.totalAmount, available: collections.unappliedAmount, number: sql<string | null>`(SELECT number FROM receipts r WHERE r.collection_id = "collections"."id")` })
           .from(collections)
           .where(and(eq(collections.clientId, partyId), eq(collections.status, "ACTIVE"), gt(collections.unappliedAmount, "0")))
           .orderBy(asc(collections.collectionDate), asc(collections.id))
       : await db
-          .select({ id: supplierPayments.id, date: supplierPayments.paymentDate, total: supplierPayments.totalAmount, available: supplierPayments.unappliedAmount, number: sql<string | null>`(SELECT number FROM payment_orders o WHERE o.payment_id = ${supplierPayments.id})` })
+          .select({ id: supplierPayments.id, date: supplierPayments.paymentDate, total: supplierPayments.totalAmount, available: supplierPayments.unappliedAmount, number: sql<string | null>`(SELECT number FROM payment_orders o WHERE o.payment_id = "supplier_payments"."id")` })
           .from(supplierPayments)
           .where(and(eq(supplierPayments.supplierId, partyId), eq(supplierPayments.status, "ACTIVE"), gt(supplierPayments.unappliedAmount, "0")))
           .orderBy(asc(supplierPayments.paymentDate), asc(supplierPayments.id));
@@ -447,4 +447,53 @@ export async function allocationsOf(db: DbOrTx, of: { documentId: number } | { c
     sourceId: Number(r.source_id),
     sourceLabel: r.source_label,
   }));
+}
+
+export interface PendingAllocationParty {
+  id: number;
+  name: string;
+  taxId: string | null;
+  credits: string;
+  debits: string;
+}
+
+/**
+ * Terceros con créditos sin aplicar (cobranzas/pagos con saldo, NC o saldos iniciales acreedores),
+ * con el total de esos créditos y el de sus comprobantes pendientes. Alimenta el panel de imputaciones.
+ */
+export async function pendingAllocationParties(db: DbOrTx, ctx: ServiceContext, direction: Direction): Promise<PendingAllocationParty[]> {
+  assertPermission(ctx, "accounts.read");
+  const issued = direction === "ISSUED";
+  const party = issued ? sql.raw("clients") : sql.raw("suppliers");
+  const partyCol = issued ? sql.raw("client_id") : sql.raw("supplier_id");
+  const ops = issued
+    ? sql`SELECT client_id AS party_id, unapplied_amount AS amount FROM collections WHERE status = 'ACTIVE' AND unapplied_amount > 0`
+    : sql`SELECT supplier_id AS party_id, unapplied_amount AS amount FROM supplier_payments WHERE status = 'ACTIVE' AND unapplied_amount > 0`;
+  const docs = (classes: readonly string[]) => sql`
+    SELECT d.${partyCol} AS party_id, d.balance AS amount
+      FROM documents d JOIN document_types t ON t.id = d.document_type_id
+     WHERE d.direction = ${direction} AND d.status <> 'ANNULLED' AND d.balance > 0
+       AND t.class IN (${sql.join(classes.map((c) => sql`${c}`), sql`, `)})`;
+  const { rows } = await db.execute<{ id: number; name: string; tax_id: string | null; credits: string; debits: string }>(sql`
+    WITH credits AS (
+      SELECT party_id, sum(amount) AS amount FROM (${ops} UNION ALL ${docs(CREDIT_DOCUMENT_CLASSES)}) c GROUP BY party_id
+    ), debits AS (
+      SELECT party_id, sum(amount) AS amount FROM (${docs(DEBIT_CLASSES)}) x GROUP BY party_id
+    )
+    SELECT p.id, p.legal_name AS name, p.tax_id, c.amount::text AS credits, coalesce(d.amount, 0)::text AS debits
+      FROM credits c
+      JOIN ${party} p ON p.id = c.party_id
+      LEFT JOIN debits d ON d.party_id = c.party_id
+     ORDER BY lower(p.legal_name)`);
+  return rows.map((r) => ({ id: Number(r.id), name: r.name, taxId: r.tax_id, credits: r.credits, debits: r.debits }));
+}
+
+/** Datos básicos de un tercero para el panel de imputaciones. */
+export async function allocationParty(db: DbOrTx, ctx: ServiceContext, direction: Direction, partyId: number) {
+  assertPermission(ctx, "accounts.read");
+  const { rows } = await db.execute<{ id: number; name: string; tax_id: string | null }>(
+    sql`SELECT id, legal_name AS name, tax_id FROM ${direction === "ISSUED" ? sql.raw("clients") : sql.raw("suppliers")} WHERE id = ${partyId}`,
+  );
+  const r = rows[0];
+  return r ? { id: Number(r.id), name: r.name, taxId: r.tax_id } : null;
 }

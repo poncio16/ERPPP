@@ -396,7 +396,7 @@ export async function listPayments(db: DbOrTx, ctx: ServiceContext, query: Opera
       total: supplierPayments.totalAmount,
       unapplied: supplierPayments.unappliedAmount,
       status: supplierPayments.status,
-      methods: sql<string>`(SELECT string_agg(DISTINCT l.method, ',') FROM payment_lines l WHERE l.payment_id = ${supplierPayments.id})`,
+      methods: sql<string>`(SELECT string_agg(DISTINCT l.method, ',') FROM payment_lines l WHERE l.payment_id = "supplier_payments"."id")`,
     })
     .from(supplierPayments)
     .innerJoin(suppliers, eq(suppliers.id, supplierPayments.supplierId))

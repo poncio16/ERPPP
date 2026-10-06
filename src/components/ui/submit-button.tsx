@@ -10,8 +10,11 @@ export function SubmitButton({
   pendingText = "Procesando…",
   variant = "primary",
   className,
+  disabled = false,
 }: {
   children: React.ReactNode;
+  /** Deshabilitado además de mientras se envía (por ejemplo, totales inválidos). */
+  disabled?: boolean;
   pendingText?: string;
   variant?: "primary" | "secondary" | "danger";
   className?: string;
@@ -19,7 +22,7 @@ export function SubmitButton({
   const { pending: nativePending } = useFormStatus();
   const pending = useActionFormPending() || nativePending;
   return (
-    <button type="submit" disabled={pending} aria-disabled={pending} className={buttonClass(variant, className)}>
+    <button type="submit" disabled={pending || disabled} aria-disabled={pending || disabled} className={buttonClass(variant, className)}>
       {pending ? pendingText : children}
     </button>
   );

@@ -376,7 +376,7 @@ export async function listCollections(db: DbOrTx, ctx: ServiceContext, query: Op
       total: collections.totalAmount,
       unapplied: collections.unappliedAmount,
       status: collections.status,
-      methods: sql<string>`(SELECT string_agg(DISTINCT l.method, ',') FROM collection_lines l WHERE l.collection_id = ${collections.id})`,
+      methods: sql<string>`(SELECT string_agg(DISTINCT l.method, ',') FROM collection_lines l WHERE l.collection_id = "collections"."id")`,
     })
     .from(collections)
     .innerJoin(clients, eq(clients.id, collections.clientId))

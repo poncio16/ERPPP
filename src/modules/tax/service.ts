@@ -78,3 +78,12 @@ export async function jurisdictions(db: DbOrTx) {
 
 /** Percepciones de IIBB: requieren jurisdicción. */
 export const requiresJurisdiction = (tax: Pick<TaxCatalogRow, "code" | "kind">) => tax.kind === "PERCEPTION" && tax.code.startsWith("PERC_IIBB");
+
+/** Impuestos de retención activos (retenciones sufridas en cobranzas y practicadas en pagos, D8). */
+export async function retentionTaxes(db: DbOrTx) {
+  return db
+    .select({ id: taxCatalog.id, name: taxCatalog.name })
+    .from(taxCatalog)
+    .where(and(eq(taxCatalog.kind, "RETENTION"), eq(taxCatalog.active, true)))
+    .orderBy(asc(taxCatalog.name));
+}

@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { allocateDef, reverseAllocationDef } from "@/modules/allocations/action-defs";
 import { proposeFifo } from "@/modules/allocations/plan";
-import { availableCredits, openDebits } from "@/modules/allocations/service";
+import { availableCredits, openDebits, pendingAllocationParties } from "@/modules/allocations/service";
 import { balanceComposition } from "@/modules/accounts/service";
 import { annulCollectionDef, registerCollectionDef } from "@/modules/collections/action-defs";
 import { receiptData } from "@/modules/collections/service";
@@ -243,7 +243,11 @@ describe("Cobranzas", () => {
     ]);
     // El saldo a favor es un crédito disponible que se imputa después.
     const credits = await availableCredits(db, "ISSUED", client);
-    expect(credits).toEqual([expect.objectContaining({ kind: "COLLECTION", id: r.id, available: "13000.00" })]);
+    const { number } = await q1<{ number: string }>("SELECT number FROM receipts WHERE collection_id = $1", [r.id]);
+    expect(credits).toEqual([expect.objectContaining({ kind: "COLLECTION", id: r.id, label: `Cobranza ${number}`, available: "13000.00" })]);
+    // El panel de imputaciones lista al cliente con su crédito sin aplicar.
+    const parties = await pendingAllocationParties(db, await administration(), "ISSUED");
+    expect(parties).toContainEqual(expect.objectContaining({ id: client, credits: "13000.00", debits: "0" }));
     await expectAccountConsistent(client);
   });
 

@@ -36,10 +36,19 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: "Cobranzas y pagos",
+    items: [
+      { href: "/cobranzas", label: "Cobranzas", permission: "collections.read" },
+      { href: "/pagos", label: "Pagos a proveedores", permission: "payments.read" },
+      { href: "/imputaciones", label: "Imputaciones", permission: "accounts.read" },
+    ],
+  },
+  {
     title: "Tesorería",
     items: [
       { href: "/caja", label: "Caja", permission: "cash.read" },
       { href: "/bancos", label: "Bancos", permission: "banks.read" },
+      { href: "/cheques", label: "Cheques", permission: "checks.read" },
       { href: "/transferencias", label: "Transferencias internas", permission: "banks.read" },
     ],
   },

@@ -12,7 +12,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["@node-rs/argon2"],
+  serverExternalPackages: ["@node-rs/argon2", "@react-pdf/renderer"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
